@@ -4,9 +4,58 @@
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <unistd.h>
+#include <getopt.h>
+#include <sys/types.h>
 
 #define true 1
 #define false 0
+
+int includeALL = false;
+int includeALLshort = false;
+int longFormat = false;
+int humanReadable = false;
+struct help_entry
+{
+  const char *opt;
+  const char *desc;
+};
+
+static struct option long_options[] = {
+  {"all", no_argument, 0, 'a'},
+  {"almost-all", no_argument, 0, 'A'},
+  {"help", no_argument, 0, 1},
+  {0, 0, 0, 0}
+};
+
+static struct help_entry help_entries[] = {
+  {"-a, --all", "show hidden and 'dot' files. Use this twice to also\n"
+  "              show the '.' and '..' directories"},
+  {"-A, --almost-all", "equivalent to --all; included for compatibility with `ls -A"},
+  {"-h, --human-readable", "with -l, print sizes in human readable format (e.g., 1K 234M 2G)"},
+  {"-l, --long", "display extended file metadata as a table"},
+  {"--help", "display this help and exit"}};
+
+void print_help(const char *name)
+{
+  printf("Usage: %s [OPTION]... DIRECTORY...\n", name);
+  printf("Create the DIRECTORY(ies), if they do not already exist.\n\n");
+  printf("Mandatory arguments to long options are mandatory for short options too.\n");
+
+  // find longest option string
+  int maxlen = 0;
+  for (int i = 0; help_entries[i].opt; i++)
+  {
+    int len = (int)strlen(help_entries[i].opt);
+    if (len > maxlen)
+      maxlen = len;
+  }
+
+  // print each option aligned
+  for (int i = 0; help_entries[i].opt; i++)
+  {
+    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
+  }
+}
 
 /*
 `-l option`
@@ -44,58 +93,78 @@ File Types:
 Output sizes as so-called human readable by using units of KB, MB, GB instead of
 bytes.
 */
-char longOutput(char file) {
+void printlongOutput(char file) {
   struct stat file_stat;
   struct statfs fs_info;
 
-  /*
-  0 = regular
-  1 = directory
-  2 = symbolic link
-  3 = network file
-  4 = socket
-  5 = named pipe
-  6 = character special file
-  7 = block special file
-  */
-  int fileType;
+  char fileType;
 
   // TODO: check for network file
   if (stat(&file, &file_stat) == 0) {
     if (S_ISREG(file_stat.st_mode)) {
-      fileType = 0;
+      fileType = '-';
     } else if (S_ISDIR(file_stat.st_mode)) {
-      fileType = 1;
+      fileType = 'd';
     } else if (S_ISLNK(file_stat.st_mode)) {
-      fileType = 2;
+      fileType = 'l';
     } else if (S_ISSOCK(file_stat.st_mode)) {
-      fileType = 4;
+      fileType = 's';
     } else if (S_ISFIFO(file_stat.st_mode)) {
-      fileType = 5;
+      fileType = 'p';
     } else if (S_ISCHR(file_stat.st_mode)) {
-      fileType = 6;
+      fileType = 'c';
     } else if (S_ISBLK(file_stat.st_mode)) {
-      fileType = 7;
+      fileType = 'b';
     }
   }
 
-  char typeI[2];
-  switch (fileType) {
-    case 1:
-      strncpy(typeI, "-", sizeof(typeI) - 1);
-      typeI[sizeof(typeI) - 1] = '\0';
-  }
+  // permissions
+  char permissions[10];
+  permissions[0] = (file_stat.st_mode & S_IRUSR) ? 'r' : '-';
+  permissions[1] = (file_stat.st_mode & S_IWUSR) ? 'w' : '-';
+  permissions[2] = (file_stat.st_mode & S_IXUSR) ? 'x' : '-';
+  permissions[3] = (file_stat.st_mode & S_IRGRP) ? 'r' : '-';
+  permissions[4] = (file_stat.st_mode & S_IWGRP) ? 'w' : '-';
+  permissions[5] = (file_stat.st_mode & S_IXGRP) ? 'x' : '-';
+  permissions[6] = (file_stat.st_mode & S_IROTH) ? 'r' : '-';
+  permissions[7] = (file_stat.st_mode & S_IWOTH) ? 'w' : '-';
+  permissions[8] = (file_stat.st_mode & S_IXOTH) ? 'x' : '-';
+  permissions[9] = '\0';
+
+  // hard link count
+  nlink_t hardLinkCount = file_stat.st_nlink;
+  // owning user
+  uid_t owningUser = file_stat.st_uid;
+  // owning group
+  gid_t owningGroup = file_stat.st_gid;
+  // file size
+  off_t fileSize = file_stat.st_size;
+  // last modified timestamp
+  struct tm *modTime = localtime(&file_stat.st_mtime);
+  char timeString[20];
+  strftime(timeString, sizeof(timeString), "%b %d %H:%M", modTime);
+  // filename
+  char *fileName = &file;
+  // print all info
+  printf("%c%s %d %d %d ", fileType, permissions, hardLinkCount, owningUser, owningGroup);
+  if (humanReadable == true) {
+    if (statfs(&file, &fs_info) == 0) {
+      // print size in human readable format
+      double size = (double)fileSize;
+      const char *units[] = {"B", "K", "M", "G", "T", "P", "E"};
+      int unitIndex = 0; // Index to track the current unit
+      while (size >= 1024 && unitIndex < 6) {
+        size /= 1024;
+        unitIndex++; // Move to the next unit
+        
 }
 
 int main(int argc, char *argv[]) {
   DIR *d;
   struct dirent *dir;
   int opt;
-
-  int includeALL = false;
-  int includeALLshort = false;
   
-  while ((opt = getopt(argc, argv, "aA")) != -1) {
+  while ((opt = getopt_long(argc, argv, "aAh", long_options, 0)) != -1) {
     switch (opt) {
     case 'a':
       includeALL = true;
@@ -103,6 +172,18 @@ int main(int argc, char *argv[]) {
     case 'A':
       includeALLshort = true;
       break;
+    case 'h':
+      humanReadable = true;
+      break;
+    case 'l':
+      longFormat = true;
+      break;
+    case 1:
+      print_help(argv[0]);
+      return 0;
+    default:
+      print_help(argv[0]);
+      return 1;
     }
   }
 
