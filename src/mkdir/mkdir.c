@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <argp.h>
 
 #define true 1
 #define false 0
@@ -14,6 +15,45 @@
 int verbose = false;
 int parents = false;
 int mode = false;
+
+struct help_entry {
+  const char *opt;
+  const char *desc;
+};
+
+static struct option long_options[] = {
+  {"verbose", no_argument, 0, 'v'},
+  {"parents", no_argument, 0, 'p'},
+  {"mode", required_argument, 0, 'm'},
+  {"help", no_argument, 0, 1},
+  {0, 0, 0, 0}
+};
+
+static struct help_entry help_entries[] = {
+  {"-m, --mode=MODE", "set file mode (as in chmod), not a=rwx - umask"},
+  {"-p, --parents", "no error if existing, make parent directories as needed,\n"
+  "                  with their file modes unaffected by any -m option"},
+  {"-v, --verbose", "print a message for each created directory"},
+  {"--help", "display this help and exit"}
+};
+
+void print_help(const char *name) {
+  printf("Usage: %s [OPTION]... DIRECTORY...\n", name);
+  printf("Create the DIRECTORY(ies), if they do not already exist.\n\n");
+  printf("Mandatory arguments to long options are mandatory for short options too.\n");
+
+  // find longest option string
+  int maxlen = 0;
+  for (int i = 0; help_entries[i].opt; i++) {
+    int len = (int)strlen(help_entries[i].opt);
+    if (len > maxlen) maxlen = len;
+  }
+  
+  // print each option aligned
+  for (int i = 0; help_entries[i].opt; i++) {
+    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
+  }
+}
 
 void createDir(char *dirName, mode_t modeV) {
   if (parents == true) {
@@ -86,13 +126,6 @@ int main(int argc, char *argv[]) {
   }
 
   int opt;
-  static struct option long_options[] = {
-    {"verbose", no_argument, &verbose, 'v'},
-    {"parents", required_argument, &parents, 'p'},
-    {"mode=", required_argument, &mode, 0},
-    {0, required_argument, &mode, 'm'}
-  };
-  
   mode_t modeV;
   while ((opt = getopt_long(argc, argv, "vpm:", long_options, 0)) != -1) {
     switch (opt) {
@@ -106,8 +139,11 @@ int main(int argc, char *argv[]) {
       mode = true;
       modeV = (mode_t) strtol(optarg, NULL, 8);
       break;
+    case 1:
+      print_help(argv[0]);
+      return 0;
     case '?':
-      break;
+      return 1;
     default:
       break;
     }
