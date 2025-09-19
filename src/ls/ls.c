@@ -6,6 +6,9 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <time.h>
+#include <pwd.h>
+#include <grp.h>
 
 #define true 1
 #define false 0
@@ -24,6 +27,7 @@ static struct option long_options[] = {
   {"all", no_argument, 0, 'a'},
   {"almost-all", no_argument, 0, 'A'},
   {"help", no_argument, 0, 1},
+  {0, no_argument, 0, 'l'},
   {0, 0, 0, 0}
 };
 
@@ -32,7 +36,7 @@ static struct help_entry help_entries[] = {
   "              show the '.' and '..' directories"},
   {"-A, --almost-all", "equivalent to --all; included for compatibility with `ls -A"},
   {"-h, --human-readable", "with -l, print sizes in human readable format (e.g., 1K 234M 2G)"},
-  {"-l, --long", "display extended file metadata as a table"},
+  {"-l", "display extended file metadata as a table"},
   {"--help", "display this help and exit"}};
 
 void print_help(const char *name)
@@ -55,6 +59,18 @@ void print_help(const char *name)
   {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
   }
+}
+
+void byteToHR(long long bytes, char* buffer, int bufferSize) {
+  const char* units[] = {"B", "K", "M", "G", "T", "P", "E"};
+  long unsigned int uIndx = 0;
+  double value = (double)bytes;
+
+  while (value >= 1024 && uIndx < sizeof(units) / sizeof(units[0]) - 1) {
+    value /= 1024;
+    uIndx++;
+  }
+  snprintf(buffer, bufferSize, "%.1f%s", value, units[uIndx]);
 }
 
 /*
@@ -93,14 +109,13 @@ File Types:
 Output sizes as so-called human readable by using units of KB, MB, GB instead of
 bytes.
 */
-void printlongOutput(char file) {
+void printlongOutput(char file[]) {
   struct stat file_stat;
-  struct statfs fs_info;
 
   char fileType;
 
   // TODO: check for network file
-  if (stat(&file, &file_stat) == 0) {
+  if (stat(file, &file_stat) == 0) {
     if (S_ISREG(file_stat.st_mode)) {
       fileType = '-';
     } else if (S_ISDIR(file_stat.st_mode)) {
@@ -117,7 +132,7 @@ void printlongOutput(char file) {
       fileType = 'b';
     }
   }
-
+  //printf("filetype %c\n", fileType);
   // permissions
   char permissions[10];
   permissions[0] = (file_stat.st_mode & S_IRUSR) ? 'r' : '-';
@@ -134,9 +149,9 @@ void printlongOutput(char file) {
   // hard link count
   nlink_t hardLinkCount = file_stat.st_nlink;
   // owning user
-  uid_t owningUser = file_stat.st_uid;
+  struct passwd *owningUser = getpwuid(file_stat.st_uid);
   // owning group
-  gid_t owningGroup = file_stat.st_gid;
+  struct group *owningGroup = getgrgid(file_stat.st_gid);
   // file size
   off_t fileSize = file_stat.st_size;
   // last modified timestamp
@@ -144,19 +159,15 @@ void printlongOutput(char file) {
   char timeString[20];
   strftime(timeString, sizeof(timeString), "%b %d %H:%M", modTime);
   // filename
-  char *fileName = &file;
+  char *fileName = file;
   // print all info
-  printf("%c%s %d %d %d ", fileType, permissions, hardLinkCount, owningUser, owningGroup);
-  if (humanReadable == true) {
-    if (statfs(&file, &fs_info) == 0) {
-      // print size in human readable format
-      double size = (double)fileSize;
-      const char *units[] = {"B", "K", "M", "G", "T", "P", "E"};
-      int unitIndex = 0; // Index to track the current unit
-      while (size >= 1024 && unitIndex < 6) {
-        size /= 1024;
-        unitIndex++; // Move to the next unit
-        
+  if (humanReadable) {
+    char buffer[50];
+    byteToHR(fileSize, buffer, sizeof(buffer));
+    printf("%c%s %d %s %s %s %s %s\n", fileType, permissions, hardLinkCount, owningUser->pw_name, owningGroup->gr_name, buffer, timeString, fileName);
+    return;
+  }
+  printf("%c%s %d %s %s %li %s %s\n", fileType, permissions, hardLinkCount, owningUser->pw_name, owningGroup->gr_name, fileSize, timeString, fileName);     
 }
 
 int main(int argc, char *argv[]) {
@@ -164,7 +175,7 @@ int main(int argc, char *argv[]) {
   struct dirent *dir;
   int opt;
   
-  while ((opt = getopt_long(argc, argv, "aAh", long_options, 0)) != -1) {
+  while ((opt = getopt_long(argc, argv, "aAhl", long_options, 0)) != -1) {
     switch (opt) {
     case 'a':
       includeALL = true;
@@ -210,9 +221,13 @@ int main(int argc, char *argv[]) {
       // printf("\nskipped over: '%s', -a bool: %d, -A bool: %d\n", dir->d_name, includeALL, includeALLshort);
       continue;
     }
+    if (longFormat) {
+      printlongOutput(dir->d_name);
+      continue;
+    }
     printf("%s  ", dir->d_name);
   }
-  printf("\n");
+  if (!humanReadable) printf("\n");
   closedir(d);
   return (0);
 }
