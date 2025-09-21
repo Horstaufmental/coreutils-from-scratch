@@ -1,5 +1,4 @@
 # coreutils-from-scratch
-<<<<<<< HEAD
 
 recreation of GNU's coreutils from scratch, primarily for learning purposes
 
@@ -129,6 +128,3 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 i practically dont have any other primary source of contact so you can contact me through Discord ([@horstaufmental](https://discord.com/users/880022290023215145))
 
 > dont worry i dont bite
-=======
-GNU Coreutils created from scratch
->>>>>>> e4426b8 (Inital commit with current state)
