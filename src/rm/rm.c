@@ -6,6 +6,8 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <unistd.h>
+#include <errno.h>
 
 #define true 1
 #define false 0
@@ -35,9 +37,10 @@ static struct option long_options[] = {
   {"interactive", optional_argument, 0, 2},
   {"no-preserve-root", no_argument, 0, 3},
   {"recursive", no_argument, 0, 'r'},
-  {"recursive", no_argument, 0, 'R'},
+  {0, no_argument, 0, 'R'},
   {"help", no_argument, 0, 1},
-  {"dir", no_argument, 0, 'd'}
+  {"dir", no_argument, 0, 'd'},
+  {0, 0, 0, 0}
 };
 
 static struct help_entry help_entries[] = {
@@ -132,8 +135,8 @@ void writeProtectCheck(const char *fileName, int isEmpty, const char *fileType) 
 
 /*
 TODO:
-- [ ] convert all high-level remove()
-to POSIX syscallls unlink() and rmdir()
+- [x] convert all high-level remove()
+to POSIX syscalls unlink() and rmdir()
 - [x] force
 - [ ] interactive
 - [x] preserveRoot
@@ -163,7 +166,8 @@ void removeFile(const char *fileName) {
       exit(EXIT_FAILURE);
     } // if is directory (second check), rm empty dir is on, but not empty
     else if (S_ISDIR(file_info.st_mode) && rmEmpty && !isEmpty) {
-      fprintf(stderr, "rm: cannot remove 'yo': Directory not empty");
+      fprintf(stderr, "rm: cannot remove '%s': Directory not empty", fileName);
+      exit(EXIT_FAILURE);
     }
   }
   // To: Horst, THIS IS PART OF THE STAT CHECK BTW
@@ -188,12 +192,20 @@ void removeFile(const char *fileName) {
     strncpy(fileType, "character special", sizeof(fileType));
   }
 
-  if (prompt)
-  
-  if (remove(fileName) != 0) {
-    fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
-    exit(EXIT_FAILURE);
+  if (S_ISDIR(file_info.st_mode)) {
+    switch(rmdir(fileName)) {
+      case -1:
+        fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+  } else {
+    switch(unlink(fileName)) {
+      case -1:
+        fprintf(stderr, "rm: cannot remove '%s': %s", fileName, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
   }
+
   if (verbose) printf("removed '%s'\n", fileName);
 }
 
@@ -232,7 +244,7 @@ int main(int argc, char *argv[]) {
           printf("  - ‘never’, ‘no’, ‘none’\n");
           printf("  - ‘once’\n");
           printf("  - ‘always’, ‘yes’\n");
-          printf("Try '%s --help' for more information.", argv[0]);
+          printf("Try '%s --help' for more information.\n", argv[0]);
           return 1;
         }
         break;
@@ -252,7 +264,7 @@ int main(int argc, char *argv[]) {
         print_help(argv[0]);
         return 0;
       default:
-        fprintf(stderr, "rm: missing operand\nTry '%s --help' for more information.", argv[0]);
+        fprintf(stderr, "rm: missing operand\nTry '%s --help' for more information.\n", argv[0]);
         return 1;
     }
     
