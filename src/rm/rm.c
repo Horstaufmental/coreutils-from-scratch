@@ -25,6 +25,8 @@ int prompt = 0;
 int shouldPrompt = false;
 int preserveRoot = true;
 
+int argCount; // for -I
+
 struct help_entry {
   const char *opt;
   const char *desc;
@@ -75,6 +77,20 @@ void print_help(const char *name) {
   }
 }
 
+int isYes(const char *input) {
+  return strcasecmp(input, "y") == 0 ||
+         strcasecmp(input, "yes") == 0 ||
+         strcasecmp(input, "ye") == 0;
+}
+
+int prompt_user(const char *message, const char *fileName) {
+  char buffer[16];
+  printf("%s '%s'? ", message, fileName);
+  fgets(buffer, sizeof(buffer), stdin);
+  buffer[strcspn(buffer, "\n")] = '\0';
+  return isYes(buffer);
+}
+
 int isDirEmpty(const char *path) {
   struct stat file_info;
   
@@ -105,13 +121,7 @@ int isDirEmpty(const char *path) {
   return (count == 0); // if empty, ret 1 ; if not, ret 0
 }
 
-int isYes(const char *input) {
-  return strcasecmp(input, "y") == 0 ||
-         strcasecmp(input, "yes") == 0 ||
-         strcasecmp(input, "ye") == 0;
-}
-
-void writeProtectCheck(const char *fileName, int isEmpty, const char *fileType) {
+void writeProtectCheck(const char *fileName, int *isEmpty, const char *fileType) {
   FILE *fp;
   char buffer[16];
   fp = fopen(fileName, "a");
@@ -227,24 +237,47 @@ void removeFile(const char *fileName) {
     strncpy(fileType, "character special", sizeof(fileType));
   }
 
-  writeProtectCheck(fileName, isEmpty, fileType);
+  writeProtectCheck(fileName, &isEmpty, fileType);
   if (S_ISDIR(file_info.st_mode)) {
-    char buffer[16];
-    if (recursive) {
-      switch(prompt) {
-       // where we left off 
-      }
-    }
-    switch(rmdir(fileName)) {
-      case -1:
-        if (!force) fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-  } else {
-    switch(unlink(fileName)) {
-      case -1:
-        if (!force) fprintf(stderr, "rm: cannot remove '%s': %s", fileName, strerror(errno));
-        exit(EXIT_FAILURE);
+    // directory
+
+    // non recursive on directory
+    // and rm empty dir but not empty
+    // check is already performed
+    switch (prompt) {
+      case 0: // no prompt
+        if (rmdir(fileName) < 0) {
+          if (!force) fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
+          exit(EXIT_FAILURE);
+        }
+        break;
+      case 1: // prompt once (files > 3)
+        if (shouldPrompt) {
+          char message[255];
+          if (argCount > 3) {
+            sprintf(message, "rm: remove %d arguments", argCount);
+            if (!prompt_user(message, "")) {
+              return;
+            }
+          } else {
+            sprintf(message, "rm: remove %d argument", argCount);
+            if (!prompt_user(message, "")) {
+              return;
+            }
+          }
+          shouldPrompt = false;
+          break;
+        }
+        recurseDir(fileName);
+      case 2: // prompt always
+        if (!isEmpty) {
+          if (!prompt_user("rm: descend into directory", fileName))
+            return;
+        } else {
+          if (!prompt_user("rm: remove directory", fileName))
+            return;
+        }
+        break;
     }
   }
 
@@ -315,6 +348,8 @@ int main(int argc, char *argv[]) {
     if (!force) fprintf(stderr, "rm: missing operand\nTry 'rm --help' for more information.\n");
     return 1;
   }
+
+  argCount = optind - argc;
   
   if ((argc - optind) > 3) shouldPrompt = true;
 
