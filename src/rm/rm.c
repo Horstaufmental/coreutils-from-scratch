@@ -32,14 +32,14 @@ struct help_entry {
 
 static struct option long_options[] = {
   {"verbose", no_argument, 0, 'v'},
-  {0, no_argument, 0, 'i'}, // prompt all
-  {0, no_argument, 0, 'I'}, // prompt once
+  {"help", no_argument, 0, 1},
   {"interactive", optional_argument, 0, 2},
   {"no-preserve-root", no_argument, 0, 3},
   {"recursive", no_argument, 0, 'r'},
-  {0, no_argument, 0, 'R'},
-  {"help", no_argument, 0, 1},
   {"dir", no_argument, 0, 'd'},
+  {0, no_argument, 0, 'R'},
+  {0, no_argument, 0, 'i'}, // prompt all
+  {0, no_argument, 0, 'I'}, // prompt once
   {0, 0, 0, 0}
 };
 
@@ -106,9 +106,9 @@ int isDirEmpty(const char *path) {
 }
 
 int isYes(const char *input) {
-  return strcasecmp(input, "y") == 1 ||
-         strcasecmp(input, "yes") == 1 ||
-         strcasecmp(input, "ye") == 1;
+  return strcasecmp(input, "y") == 0 ||
+         strcasecmp(input, "yes") == 0 ||
+         strcasecmp(input, "ye") == 0;
 }
 
 void writeProtectCheck(const char *fileName, int isEmpty, const char *fileType) {
@@ -124,7 +124,7 @@ void writeProtectCheck(const char *fileName, int isEmpty, const char *fileType) 
       if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
         buffer[strcspn(buffer, "\n")] = '\0';
         //printf("%s - %d", buffer, isYes(buffer));
-        if (isYes(buffer) || strcasecmp(buffer, "") == 0) {
+        if (!isYes(buffer) || strcasecmp(buffer, "") == 0) {
           exit(EXIT_FAILURE);
         }
       }
@@ -230,14 +230,14 @@ int main(int argc, char *argv[]) {
         prompt = 1;
         break;
       case 2:
-        if (strcasecmp(optarg, "never") == 0 || strcasecmp(optarg, "no") == 0 || strcasecmp(optarg, "none") == 0) {
+        if (optarg == NULL) { // had to be the first cuz the rest will segfault
+          prompt = 2; // defaults to alaways if just --interactive is used
+        } else if (strcasecmp(optarg, "never") == 0 || strcasecmp(optarg, "no") == 0 || strcasecmp(optarg, "none") == 0) {
           prompt = 0;
         } else if (strcasecmp(optarg, "once") == 0) {
           prompt = 1;
         } else if (strcasecmp(optarg, "always") == 0 || strcasecmp(optarg, "yes") == 0) {
           prompt = 2;
-        } else if (optarg == NULL) {
-          prompt = 2; // default to always if no optarg
         } else {
           printf("rm: ambiguous argument ‘%s’ for ‘--interactive’\n", optarg);
           printf("Valid arguments are:\n");
@@ -269,7 +269,14 @@ int main(int argc, char *argv[]) {
     }
     
   }
-  if (argc - optind > 3) shouldPrompt = true;
+  // only performed one time, checks if theres no non-option argument (optind will equal to argc)
+  if (optind == argc) {
+    fprintf(stderr, "rm: missing operand\nTry 'rm --help' for more information.\n");
+    return 1;
+  }
+  
+  if ((argc - optind) > 3) shouldPrompt = true;
+
   for (; optind < argc; optind++) {
     removeFile(argv[optind]);
   }
