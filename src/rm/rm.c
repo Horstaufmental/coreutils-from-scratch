@@ -79,7 +79,7 @@ int isDirEmpty(const char *path) {
   struct stat file_info;
   
   // check if IS directory
-  if (stat(path, &file_info) == 0) {
+  if (lstat(path, &file_info) == 0) {
     if (!S_ISDIR(file_info.st_mode)) {
       return 1;
     }
@@ -129,8 +129,43 @@ void writeProtectCheck(const char *fileName, int isEmpty, const char *fileType) 
         }
       }
     }
+  } else fclose(fp);
+}
+
+int recurseDir(const char *fileName) {
+  // it is implied that the fileName is already checked to be a directory
+  DIR *dir = opendir(fileName);
+  if (!dir) {
+    if (!force) fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
+    exit(EXIT_FAILURE);
   }
-  fclose(fp);
+
+  struct dirent *entry;
+  while ((entry = readdir(dir)) != NULL) {
+    if (strcmp(entry->d_name, ".") == 0 ||
+        strcmp(entry->d_name, "..") == 0)
+        continue;
+
+      char *child_path;
+      if (asprintf(&child_path, "%s/%s", fileName, entry->d_name) < 0) {
+        if (!force) fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
+        closedir(dir);
+        return -1;
+      }
+
+      if (recurseDir(child_path) < 0) {
+        free(child_path);
+        closedir(dir);
+        return -1;
+      }
+      free(child_path);
+  }
+  closedir(dir);
+  if (rmdir(fileName) < 0) {
+    if (!force) fprintf(stderr, "rm: cannot remove '%s': %s", fileName, strerror(errno));
+    return -1;
+  }
+  return 0;
 }
 
 /*
@@ -154,7 +189,7 @@ void removeFile(const char *fileName) {
     exit(EXIT_FAILURE);
   }
 
-  if (stat(fileName, &file_info) == 0) {
+  if (lstat(fileName, &file_info) == 0) {
     // directory empty check
     if ((file_info.st_size == 0) || isDirEmpty(fileName)) {
       isEmpty = true;
@@ -192,28 +227,34 @@ void removeFile(const char *fileName) {
     strncpy(fileType, "character special", sizeof(fileType));
   }
 
+  writeProtectCheck(fileName, isEmpty, fileType);
   if (S_ISDIR(file_info.st_mode)) {
+    char buffer[16];
+    if (recursive) {
+      switch(prompt) {
+       // where we left off 
+      }
+    }
     switch(rmdir(fileName)) {
       case -1:
-        fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
+        if (!force) fprintf(stderr, "rm: cannot remove '%s': %s\n", fileName, strerror(errno));
         exit(EXIT_FAILURE);
     }
   } else {
     switch(unlink(fileName)) {
       case -1:
-        fprintf(stderr, "rm: cannot remove '%s': %s", fileName, strerror(errno));
+        if (!force) fprintf(stderr, "rm: cannot remove '%s': %s", fileName, strerror(errno));
         exit(EXIT_FAILURE);
     }
   }
 
-  if (verbose) printf("removed '%s'\n", fileName);
+  if (verbose) {
+    if (S_ISDIR(file_info.st_mode)) printf("removed directory '%s'\n", fileName);
+    else printf("removed '%s'\n", fileName);
+  }
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    printf("rm: missing operand\nTry '%s --help' for more information.\n", argv[0]);
-    return 1;
-  }
   int opt;
   while ((opt = getopt_long(argc, argv, "fiIrRdv", long_options, 0)) != -1) {
     switch(opt) {
@@ -264,14 +305,14 @@ int main(int argc, char *argv[]) {
         print_help(argv[0]);
         return 0;
       default:
-        fprintf(stderr, "rm: missing operand\nTry '%s --help' for more information.\n", argv[0]);
+        if (!force) fprintf(stderr, "rm: missing operand\nTry '%s --help' for more information.\n", argv[0]);
         return 1;
     }
     
   }
   // only performed one time, checks if theres no non-option argument (optind will equal to argc)
   if (optind == argc) {
-    fprintf(stderr, "rm: missing operand\nTry 'rm --help' for more information.\n");
+    if (!force) fprintf(stderr, "rm: missing operand\nTry 'rm --help' for more information.\n");
     return 1;
   }
   
