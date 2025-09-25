@@ -93,7 +93,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] env
 - [ ] expr
 - [ ] factor
-- [ ] false
+- [x] false
 - [ ] groups
 - [ ] hostid
 - [ ] id
@@ -105,7 +105,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] pathchk
 - [ ] printenv
 - [ ] printf
-- [ ] pwd
+- [x] pwd
 - [ ] readlink
 - [ ] seq
 - [ ] sleep
@@ -113,7 +113,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] tee
 - [ ] test
 - [ ] timeout
-- [ ] true
+- [x] true
 - [ ] tty
 - [ ] uname
 - [ ] unlink
