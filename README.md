@@ -44,7 +44,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] mktemp
 - [ ] mv
 - [ ] realpath
-- [ ] rm
+- [x] rm
 - [ ] rmdir
 - [ ] shred
 - [ ] sync
@@ -89,7 +89,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] date
 - [ ] dirname
 - [ ] du
-- [ ] echo
+- [x] echo
 - [ ] env
 - [ ] expr
 - [ ] factor
