@@ -101,7 +101,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] logname
 - [ ] nice
 - [ ] nohup
-- [ ] nproc
+- [x] nproc
 - [ ] pathchk
 - [ ] printenv
 - [ ] printf
@@ -125,6 +125,8 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 ## Information
 
-i practically dont have any other primary source of contact so you can contact me through Discord ([@horstaufmental](https://discord.com/users/880022290023215145))
+i practically dont have any other primary source of contact so you can contact me through Discord
+
+![Static Badge](https://img.shields.io/badge/Horstaufmental-%235865f2?style=for-the-badge&label=Discord%20Profile&link=https%3A%2F%2Fdiscord.com%2Fusers%2F880022290023215145)
 
 > dont worry i dont bite
