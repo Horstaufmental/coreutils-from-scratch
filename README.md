@@ -83,7 +83,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] uniq
 - [ ] wc
 ### Shell Utilities (shellutils) List
-- [ ] arch
+- [x] arch
 - [ ] basename
 - [ ] chroot
 - [ ] date
@@ -108,20 +108,20 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [x] pwd
 - [ ] readlink
 - [ ] seq
-- [ ] sleep
+- [x] sleep
 - [ ] stat
 - [ ] tee
 - [ ] test
 - [ ] timeout
 - [x] true
 - [ ] tty
-- [ ] uname
+- [x] uname
 - [ ] unlink
 - [ ] uptime
 - [ ] users
 - [ ] who
 - [ ] whoami
-- [ ] yes
+- [x] yes
 
 ## Information
 
