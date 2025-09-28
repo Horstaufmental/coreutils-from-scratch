@@ -114,7 +114,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] test
 - [ ] timeout
 - [x] true
-- [ ] tty
+- [x] tty
 - [x] uname
 - [ ] unlink
 - [ ] uptime
