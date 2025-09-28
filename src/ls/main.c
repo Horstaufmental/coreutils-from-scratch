@@ -12,7 +12,6 @@
 #include <grp.h>
 #include <stdlib.h>
 
-#include "bytetohr.h"
 #include "print_help.c"
 #include "longformat.c"
 
@@ -88,6 +87,7 @@ int main(int argc, char *argv[]) {
     }
     printf("%s  ", dir->d_name);
   }
+  if (!longFormat) printf("\n");
   free(realPath);
   closedir(d);
   return (0);

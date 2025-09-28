@@ -44,7 +44,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] mktemp
 - [ ] mv
 - [ ] realpath
-- [ ] rm
+- [x] rm
 - [ ] rmdir
 - [ ] shred
 - [ ] sync
@@ -83,17 +83,17 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] uniq
 - [ ] wc
 ### Shell Utilities (shellutils) List
-- [ ] arch
+- [x] arch
 - [ ] basename
 - [ ] chroot
 - [ ] date
 - [ ] dirname
 - [ ] du
-- [ ] echo
+- [x] echo
 - [ ] env
 - [ ] expr
 - [ ] factor
-- [ ] false
+- [x] false
 - [ ] groups
 - [ ] hostid
 - [ ] id
@@ -101,30 +101,32 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] logname
 - [ ] nice
 - [ ] nohup
-- [ ] nproc
+- [x] nproc
 - [ ] pathchk
 - [ ] printenv
 - [ ] printf
-- [ ] pwd
+- [x] pwd
 - [ ] readlink
 - [ ] seq
-- [ ] sleep
+- [x] sleep
 - [ ] stat
 - [ ] tee
 - [ ] test
 - [ ] timeout
-- [ ] true
-- [ ] tty
-- [ ] uname
+- [x] true
+- [x] tty
+- [x] uname
 - [ ] unlink
 - [ ] uptime
 - [ ] users
 - [ ] who
 - [ ] whoami
-- [ ] yes
+- [x] yes
 
 ## Information
 
-i practically dont have any other primary source of contact so you can contact me through Discord ([@horstaufmental](https://discord.com/users/880022290023215145))
+i practically dont have any other primary source of contact so you can contact me through Discord
+
+![Static Badge](https://img.shields.io/badge/Horstaufmental-%235865f2?style=for-the-badge&label=Discord%20Profile&link=https%3A%2F%2Fdiscord.com%2Fusers%2F880022290023215145)
 
 > dont worry i dont bite
