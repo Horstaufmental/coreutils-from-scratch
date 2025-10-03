@@ -54,7 +54,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] base32
 - [ ] base64
 - [ ] basenc
-- [ ] cat
+- [x] cat
 - [ ] cksum
 - [ ] comm
 - [ ] csplit
