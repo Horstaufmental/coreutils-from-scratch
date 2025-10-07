@@ -48,7 +48,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] rmdir
 - [ ] shred
 - [ ] sync
-- [ ] touch
+- [x] touch
 ### Text Utilities (textutils) List
 - [ ] b2sum
 - [ ] base32
