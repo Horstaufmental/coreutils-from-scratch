@@ -97,6 +97,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] groups
 - [ ] hostid
 - [ ] id
+- [x] kill
 - [ ] link
 - [ ] logname
 - [ ] nice
