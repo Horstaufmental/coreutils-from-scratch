@@ -117,7 +117,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [x] true
 - [x] tty
 - [x] uname
-- [ ] unlink
+- [x] unlink
 - [ ] uptime
 - [ ] users
 - [ ] who
