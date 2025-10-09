@@ -45,7 +45,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] mv
 - [ ] realpath
 - [x] rm
-- [ ] rmdir
+- [x] rmdir
 - [ ] shred
 - [ ] sync
 - [x] touch
