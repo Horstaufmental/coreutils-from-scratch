@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <getopt.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 struct help_entry {
   char *opt;
@@ -22,7 +24,7 @@ struct option long_options[] = {
 };
 
 static struct help_entry help_entries[] = {
-  {"-s, --signal=SIGNAL, -SIGNAL", "specify the name or number of the signal"
+  {"-s, --signal=SIGNAL, -SIGNAL", "specify the name or number of the signal\n"
    "                                to be sent"},
   {"-l, --list", "list signal names, or convert signal names to/from numbers"},
   {"-t, --table", "print a table of signal information"},
@@ -133,6 +135,8 @@ int printSignals(const char *name, struct signalLists *sigs, int flags) {
 }
 
 int main(int argc, char *argv[]) {
+  int SigRealtimeMin = SIGRTMIN;
+  int SigRealtimeMax = SIGRTMAX;
   struct signalLists sigs[] = {
     {"EXIT", 0, "Unknown signal 0"},
     {"HUP", SIGHUP, "Hangup"},
@@ -166,39 +170,40 @@ int main(int argc, char *argv[]) {
     {"POLL", SIGPOLL, "I/O possible"},
     {"PWR", SIGPWR, "Power failure"},
     {"SYS", SIGSYS, "Bad system call"},
-    {"RTMIN", SIGRTMIN, "Real-time signal 0"},
-    {"RTMIN+1",  (SIGRTMIN+1  <= SIGRTMAX) ? SIGRTMIN+1  : SIGRTMAX, "Real-time signal 1"},
-    {"RTMIN+2",  (SIGRTMIN+2  <= SIGRTMAX) ? SIGRTMIN+2  : SIGRTMAX, "Real-time signal 2"},
-    {"RTMIN+3",  (SIGRTMIN+3  <= SIGRTMAX) ? SIGRTMIN+3  : SIGRTMAX, "Real-time signal 3"},
-    {"RTMIN+4",  (SIGRTMIN+4  <= SIGRTMAX) ? SIGRTMIN+4  : SIGRTMAX, "Real-time signal 4"},
-    {"RTMIN+5",  (SIGRTMIN+5  <= SIGRTMAX) ? SIGRTMIN+5  : SIGRTMAX, "Real-time signal 5"},
-    {"RTMIN+6",  (SIGRTMIN+6  <= SIGRTMAX) ? SIGRTMIN+6  : SIGRTMAX, "Real-time signal 6"},
-    {"RTMIN+7",  (SIGRTMIN+7  <= SIGRTMAX) ? SIGRTMIN+7  : SIGRTMAX, "Real-time signal 7"},
-    {"RTMIN+8",  (SIGRTMIN+8  <= SIGRTMAX) ? SIGRTMIN+8  : SIGRTMAX, "Real-time signal 8"},
-    {"RTMIN+9",  (SIGRTMIN+9  <= SIGRTMAX) ? SIGRTMIN+9  : SIGRTMAX, "Real-time signal 9"},
-    {"RTMIN+10", (SIGRTMIN+10 <= SIGRTMAX) ? SIGRTMIN+10 : SIGRTMAX, "Real-time signal 10"},
-    {"RTMIN+11", (SIGRTMIN+11 <= SIGRTMAX) ? SIGRTMIN+11 : SIGRTMAX, "Real-time signal 11"},
-    {"RTMIN+12", (SIGRTMIN+12 <= SIGRTMAX) ? SIGRTMIN+12 : SIGRTMAX, "Real-time signal 12"},
-    {"RTMIN+13", (SIGRTMIN+13 <= SIGRTMAX) ? SIGRTMIN+13 : SIGRTMAX, "Real-time signal 13"},
-    {"RTMIN+14", (SIGRTMIN+14 <= SIGRTMAX) ? SIGRTMIN+14 : SIGRTMAX, "Real-time signal 14"},
-    {"RTMIN+15", (SIGRTMIN+15 <= SIGRTMAX) ? SIGRTMIN+15 : SIGRTMAX, "Real-time signal 15"},
-    {"RTMAX-14", (SIGRTMAX-14 <= SIGRTMAX) ? SIGRTMAX-14 : SIGRTMAX, "Real-time signal 16"},
-    {"RTMAX-14", (SIGRTMAX-14 <= SIGRTMAX) ? SIGRTMAX-14 : SIGRTMAX, "Real-time signal 17"},
-    {"RTMAX-14", (SIGRTMAX-14 <= SIGRTMAX) ? SIGRTMAX-14 : SIGRTMAX, "Real-time signal 18"},
-    {"RTMAX-14", (SIGRTMAX-14 <= SIGRTMAX) ? SIGRTMAX-14 : SIGRTMAX, "Real-time signal 19"},
-    {"RTMAX-14", (SIGRTMAX-14 <= SIGRTMAX) ? SIGRTMAX-14 : SIGRTMAX, "Real-time signal 20"},
-    {"RTMAX-9",  (SIGRTMAX-9  <= SIGRTMAX) ? SIGRTMAX-9  : SIGRTMAX, "Real-time signal 21"},
-    {"RTMAX-8",  (SIGRTMAX-8  <= SIGRTMAX) ? SIGRTMAX-8  : SIGRTMAX, "Real-time signal 22"},
-    {"RTMAX-7",  (SIGRTMAX-7  <= SIGRTMAX) ? SIGRTMAX-7  : SIGRTMAX, "Real-time signal 23"},
-    {"RTMAX-6",  (SIGRTMAX-6  <= SIGRTMAX) ? SIGRTMAX-6  : SIGRTMAX, "Real-time signal 24"},
-    {"RTMAX-5",  (SIGRTMAX-5  <= SIGRTMAX) ? SIGRTMAX-5  : SIGRTMAX, "Real-time signal 25"},
-    {"RTMAX-4",  (SIGRTMAX-4  <= SIGRTMAX) ? SIGRTMAX-4  : SIGRTMAX, "Real-time signal 26"},
-    {"RTMAX-3",  (SIGRTMAX-3  <= SIGRTMAX) ? SIGRTMAX-3  : SIGRTMAX, "Real-time signal 27"},
-    {"RTMAX-2",  (SIGRTMAX-2  <= SIGRTMAX) ? SIGRTMAX-2  : SIGRTMAX, "Real-time signal 28"},
-    {"RTMAX-1",  (SIGRTMAX-1  <= SIGRTMAX) ? SIGRTMAX-1  : SIGRTMAX, "Real-time signal 29"},
-    {"RTMAX", SIGRTMAX, "Real-time signal 30"},
+    {"RTMIN", SigRealtimeMin, "Real-time signal 0"},
+    {"RTMIN+1",  (SigRealtimeMin+1  <= SigRealtimeMax) ? SigRealtimeMin+1  : SigRealtimeMax, "Real-time signal 1"},
+    {"RTMIN+2",  (SigRealtimeMin+2  <= SigRealtimeMax) ? SigRealtimeMin+2  : SigRealtimeMax, "Real-time signal 2"},
+    {"RTMIN+3",  (SigRealtimeMin+3  <= SigRealtimeMax) ? SigRealtimeMin+3  : SigRealtimeMax, "Real-time signal 3"},
+    {"RTMIN+4",  (SigRealtimeMin+4  <= SigRealtimeMax) ? SigRealtimeMin+4  : SigRealtimeMax, "Real-time signal 4"},
+    {"RTMIN+5",  (SigRealtimeMin+5  <= SigRealtimeMax) ? SigRealtimeMin+5  : SigRealtimeMax, "Real-time signal 5"},
+    {"RTMIN+6",  (SigRealtimeMin+6  <= SigRealtimeMax) ? SigRealtimeMin+6  : SigRealtimeMax, "Real-time signal 6"},
+    {"RTMIN+7",  (SigRealtimeMin+7  <= SigRealtimeMax) ? SigRealtimeMin+7  : SigRealtimeMax, "Real-time signal 7"},
+    {"RTMIN+8",  (SigRealtimeMin+8  <= SigRealtimeMax) ? SigRealtimeMin+8  : SigRealtimeMax, "Real-time signal 8"},
+    {"RTMIN+9",  (SigRealtimeMin+9  <= SigRealtimeMax) ? SigRealtimeMin+9  : SigRealtimeMax, "Real-time signal 9"},
+    {"RTMIN+10", (SigRealtimeMin+10 <= SigRealtimeMax) ? SigRealtimeMin+10 : SigRealtimeMax, "Real-time signal 10"},
+    {"RTMIN+11", (SigRealtimeMin+11 <= SigRealtimeMax) ? SigRealtimeMin+11 : SigRealtimeMax, "Real-time signal 11"},
+    {"RTMIN+12", (SigRealtimeMin+12 <= SigRealtimeMax) ? SigRealtimeMin+12 : SigRealtimeMax, "Real-time signal 12"},
+    {"RTMIN+13", (SigRealtimeMin+13 <= SigRealtimeMax) ? SigRealtimeMin+13 : SigRealtimeMax, "Real-time signal 13"},
+    {"RTMIN+14", (SigRealtimeMin+14 <= SigRealtimeMax) ? SigRealtimeMin+14 : SigRealtimeMax, "Real-time signal 14"},
+    {"RTMIN+15", (SigRealtimeMin+15 <= SigRealtimeMax) ? SigRealtimeMin+15 : SigRealtimeMax, "Real-time signal 15"},
+    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 16"},
+    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 17"},
+    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 18"},
+    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 19"},
+    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 20"},
+    {"RTMAX-9",  (SigRealtimeMax-9  <= SigRealtimeMax) ? SigRealtimeMax-9  : SigRealtimeMax, "Real-time signal 21"},
+    {"RTMAX-8",  (SigRealtimeMax-8  <= SigRealtimeMax) ? SigRealtimeMax-8  : SigRealtimeMax, "Real-time signal 22"},
+    {"RTMAX-7",  (SigRealtimeMax-7  <= SigRealtimeMax) ? SigRealtimeMax-7  : SigRealtimeMax, "Real-time signal 23"},
+    {"RTMAX-6",  (SigRealtimeMax-6  <= SigRealtimeMax) ? SigRealtimeMax-6  : SigRealtimeMax, "Real-time signal 24"},
+    {"RTMAX-5",  (SigRealtimeMax-5  <= SigRealtimeMax) ? SigRealtimeMax-5  : SigRealtimeMax, "Real-time signal 25"},
+    {"RTMAX-4",  (SigRealtimeMax-4  <= SigRealtimeMax) ? SigRealtimeMax-4  : SigRealtimeMax, "Real-time signal 26"},
+    {"RTMAX-3",  (SigRealtimeMax-3  <= SigRealtimeMax) ? SigRealtimeMax-3  : SigRealtimeMax, "Real-time signal 27"},
+    {"RTMAX-2",  (SigRealtimeMax-2  <= SigRealtimeMax) ? SigRealtimeMax-2  : SigRealtimeMax, "Real-time signal 28"},
+    {"RTMAX-1",  (SigRealtimeMax-1  <= SigRealtimeMax) ? SigRealtimeMax-1  : SigRealtimeMax, "Real-time signal 29"},
+    {"RTMAX", SigRealtimeMax, "Real-time signal 30"},
     {NULL, 0, NULL}
   };
+
   unsigned int flags;
   int sig = SIGTERM; // default if no SIGNAL is specified
   int opt;
@@ -256,6 +261,9 @@ int main(int argc, char *argv[]) {
       case 't':
         flags |= PRINT_TABLE;
         break;
+      case 1:
+        print_help(argv[0]);
+        return 0;
     }
   }
 
