@@ -51,7 +51,7 @@ void print_help(const char *name) {
   for (int i = 0; help_entries[i].opt; i++) {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
   }
-  puts("\nSIGNAL may be a signal name like 'HUP', or a signal number like '1',\n"
+  puts("\nSIGNAL may be a signal name like 'HUP' (except for -SIGNAL), or a signal number like '1',\n"
        "or the exit status of a process terminated by a signal.\n"
        "PID is an integer; if negative it identifies a process group."
   );
