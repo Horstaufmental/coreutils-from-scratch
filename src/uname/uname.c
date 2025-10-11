@@ -3,26 +3,22 @@
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <sys/utsname.h>
+#include <malloc.h>
 
 #ifndef OPERATING_SYSTEM
-# define OPERATING_SYSTEM "unknown"
+  #define OPERATING_SYSTEM "unknown"
 #endif
 
-/*
-0 = all,
-1 = kernel name,
-2 = node name,
-3 = kernel release,
-4 = kernel version,
-5 = machine hardware name,
-6 = processor type (non-portable)
-7 = hardware platform (non-portable)
-8 = operating system
-
-With no OPTION, same as 1
-*/
-int infoT = 1;
-
+#define P_KERNEL     (1 << 0)
+#define P_NODE       (1 << 1)
+#define P_KERNELREL  (1 << 2)
+#define P_KERNELVER  (1 << 3)
+#define P_MACHINE    (1 << 4)
+#define P_PROCESSOR  (1 << 5)
+#define P_HWPLATFORM (1 << 6)
+#define P_OS         (1 << 7)
+   
 struct help_entry {
   const char *opt;
   const char *desc;
@@ -43,17 +39,17 @@ static struct option long_options[] = {
 };
 
 static struct help_entry help_entries[] = {
-  {"-a, --all", "print all information, in the following order,\n"
-  "                           except omit -p and -i if unknown:"},
-  {"-s, --kernel-name", "print the kernel name"},
-  {"-n, --nodename", "print the network node hostname"},
-  {"-r, --kernel-release", "print the kernel release"},
-  {"-v, --kernel-version", "print the kernel version"},
-  {"-m, --machine", "print the machine hardware name"},
-  {"-p, --processor", "print the processor type (non-portable)"},
+  {"-a, --all",               "print all information, in the following order,\n"
+  "                            except omit -p and -i if unknown:"},
+  {"-s, --kernel-name",       "print the kernel name"},
+  {"-n, --nodename",          "print the network node hostname"},
+  {"-r, --kernel-release",    "print the kernel release"},
+  {"-v, --kernel-version",    "print the kernel version"},
+  {"-m, --machine",           "print the machine hardware name"},
+  {"-p, --processor",         "print the processor type (non-portable)"},
   {"-i, --hardware-platform", "print the hardware platform (non-portable)"},
-  {"-o, --operating-system", "print the operating system"},
-  {"    --help", "display this help and exit"}
+  {"-o, --operating-system",  "print the operating system"},
+  {"    --help",              "display this help and exit"}
 };
 
 void print_help(const char *name) {
@@ -73,155 +69,132 @@ void print_help(const char *name) {
   }
 }
 
-// yeah im redefining sys/utsname.h
-struct utsname {
-  char sysname[65];  /* Operating system name (e.g., "Linux") */
-  char nodename[65]; /* Name within communications network
-                        to which the node is attached, if any */
-  char release[65];  /* Operating system release
-                        (e.g., "2.6.28") */
-  char version[65];  /* Operating system version */
-  char machine[65];  /* Hardware type identifier */
-};
+void print_to_var(char *buf, char *str) {
+  char buffer[1025];
+  // printf("buf (1) : |%s\n", buf);
+  // printf("str     : |%s\n", str);
+  strncpy(buffer, buf, sizeof(buffer) - 1);
+  // printf("buffer  : |%s\n", buffer);
+  if (strlen(buffer) == 0) {
+    strncpy(buf, str, sizeof(buffer) - 1);
+  } else
+    sprintf(buf, "%s %s", buffer, str);
+  // printf("buf (2) : |%s\n\n", buf);
+}
 
-int uname(struct utsname *buf) {
-  if (syscall(63, buf) != 0)
-    return -1;
+int to_print(unsigned int flags, char *proc, char *plat) {
+  if (flags == 0) { // "With no OPTION, same as -s"
+    flags |= P_KERNEL;
+  }
+  
+  struct utsname buf;
+  if (uname(&buf) != 0) {
+    return 1;
+  }
+
+  char *buffer = malloc(1025);
+  if (buffer == NULL) {
+    return 1;
+  }
+  
+  if (flags & P_KERNEL)
+    print_to_var(buffer, buf.sysname);
+  if (flags & P_NODE)
+    print_to_var(buffer, buf.nodename);
+  if (flags & P_KERNELREL)
+    print_to_var(buffer, buf.release);
+  if (flags & P_KERNELVER)
+    print_to_var(buffer, buf.version);
+  if (flags & P_MACHINE)
+    print_to_var(buffer, buf.machine);
+  if (flags & P_PROCESSOR)
+    print_to_var(buffer, proc);
+  if (flags & P_HWPLATFORM)
+    print_to_var(buffer, plat);
+  if (flags & P_OS)
+    print_to_var(buffer, OPERATING_SYSTEM);
+  puts(buffer);
+
+  free(buffer);
   return 0;
 }
 
 int main(int argc, char *argv[]) {
+  char processor[257];
+  char platform[257];
   
+  #ifdef SI_ARCHITECTURE
+    char proc[257];
+    if (0 <= sysinfo(SI_ARCHITECTURE, proc, sizeof(proc)))
+      strncpy(processor, proc, sizeof(processor) - strlen(proc) - 1);
+    else
+      strncpy(processor, "unknown", sizeof(processor) - 9);
+  #elif HAVE_GETAUXVAL && defined(AT_PLATFORM)
+    char const *p = (char const *) getauxval(AT_PLATFORM);
+    if (p != NULL)
+      strncpy(processor, p, sizeof(processor) - strlen(p) - 1);
+    else
+      strncpy(processor, "unknown", sizeof(processor) - 9);
+  #else
+      strncpy(processor, "unknown", sizeof(processor) - 9);
+  #endif
+
+  #ifdef SI_PLATFORM
+    char pf[257];
+    if (0 <= sysinfo(SI_PLATFORM, pf, sizeof(pf)))
+      strncpy(platform, pf, sizeof(platform) - strlen(pf) - 1);
+    else
+      strncpy(platform, "unknown", sizeof(platform) - 9);
+  #else
+      strncpy(platform, "unknown", sizeof(platform) - 9);
+  #endif
+  
+  unsigned int flags = 0;
   int opt;
-  struct utsname sys_info;
 
   while ((opt = getopt_long(argc, argv, "asnrvmpio", long_options, 0)) != -1) {
     switch (opt) {
       case 'a':
-        infoT = 0;
+        flags |= P_KERNEL | P_NODE | P_KERNELREL | P_KERNELVER | P_MACHINE | P_OS;
+        if (strcmp(processor, "unknown") != 0) flags |= P_PROCESSOR;
+        if (strcmp(platform, "unknown") != 0) flags |= P_HWPLATFORM;
         break;
       case 's':
-        infoT = 1;
+        flags |= P_KERNEL;
         break;
       case 'n':
-        infoT = 2;
+        flags |= P_NODE;
         break;
       case 'r':
-        infoT = 3;
+        flags |= P_KERNELREL;
         break;
       case 'v':
-        infoT = 4;
+        flags |= P_KERNELVER;
         break;
       case 'm':
-        infoT = 5;
+        flags |= P_MACHINE;
         break;
       case 'p':
-        infoT = 6;
+        flags |= P_PROCESSOR;
         break;
       case 'i':
-        infoT = 7;
+        flags |= P_HWPLATFORM;
         break;
       case 'o':
-        infoT = 8;
+        flags |= P_OS;
         break;
       case 1:
         print_help(argv[0]);
         return 0;
       case '?':
-        if (1) {}
-
-        // getopt_long automatically prints out "unrecognized option"
-        char buffer[1024];
-        sprintf(buffer, "Try '%s --help' for more information.\n", argv[0]);
-        write(2, buffer, strlen(buffer));
+        printf("Try '%s --help' for more information.\n", argv[0]);
         return 1;
       }
   }
 
-  if (uname(&sys_info) == -1) {
-    char buffer[256] = "rm: cannot retrieve system info: ";
-    strncat(buffer, strerror(errno), sizeof(buffer) - strlen(buffer) - strlen(strerror(errno))); strncat(buffer, "\n", sizeof(buffer) - strlen(buffer) - 1);
-    write(2, buffer, strlen(buffer));
+  if (to_print(flags, processor, platform) != 0) {
+    fprintf(stderr, "uname: cannot retrieve system info: %s\n", strerror(errno));
   }
-  char processor[257];
-  char platform[257];
-
-  // might break, who knows?
-  if (infoT == 6) {
-  # ifdef SI_ARCHITECTURE
-      char proc[257];
-      if (0 <= sysinfo(SI_ARCHITECTURE, proc, sizeof(proc)))
-        strncpy(processor, proc, sizeof(processor) - strlen(proc) - 1);
-      else
-        strncpy(processor, "unknown\n", sizeof(processor) - 9);
-  # elif HAVE_GETAUXVAL && defined(AT_PLATFORM)
-      char const *p = (char const *) getauxval(AT_PLATFORM);
-      if (p != NULL)
-        strncpy(processor, p, sizeof(processor) - strlen(p) - 1);
-      else
-        strncpy(processor, "unknown\n", sizeof(processor) - 9);
-  # else
-      strncpy(processor, "unknown\n", sizeof(processor) - 9);
-  # endif
-  }
-
-  if (infoT == 7) {
-    # ifdef SI_PLATFORM
-      char pf[257];
-      if (0 <= sysinfo(SI_PLATFORM, pf, sizeof(pf)))
-        strncpy(platform, pf, sizeof(platform) - strlen(pf) - 1);
-      else
-        strncpy(platform, "unknown\n", sizeof(platform) - 9);
-    # else
-        strncpy(platform, "unknown\n", sizeof(platform) - 9);
-    # endif
-  }
-  
-  // maybe i should take a look into coreutils actual source
-  // just to write a better logic for printing
-  char msg[1024];
-  switch (infoT) {
-    case 0:
-      if (1) {}
-      sprintf(msg, "%s %s %s %s %s %s\n", sys_info.sysname, sys_info.nodename, sys_info.release, sys_info.version, sys_info.machine, OPERATING_SYSTEM);
-      write(1, msg, strlen(msg));
-      break;
-    case 1:
-      strncpy(msg, sys_info.sysname, sizeof(msg) - strlen(sys_info.sysname) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-    case 2:
-      strncpy(msg, sys_info.nodename, sizeof(msg) - strlen(sys_info.nodename) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-    case 3:
-      strncpy(msg, sys_info.release, sizeof(msg) - strlen(sys_info.release) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-    case 4:
-      strncpy(msg, sys_info.version, sizeof(msg) - strlen(sys_info.version) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-    case 5:
-      strncpy(msg, sys_info.machine, sizeof(msg) - strlen(sys_info.machine) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-    case 6:
-      write(1, processor, strlen(processor));
-      break;
-    case 7:
-      write(1, platform, strlen(platform));
-      break;
-    case 8:
-      strncpy(msg, OPERATING_SYSTEM, sizeof(msg) - strlen(OPERATING_SYSTEM) - 1);
-      strncat(msg, "\n", sizeof(msg) - 2);
-      write(1, msg, strlen(msg));
-      break;
-  }
+ 
   return 0;
 }
