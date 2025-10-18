@@ -12,22 +12,20 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 
-#define true 1
-#define false 0
-
-int verbose = false;
-int recursive = false;
-int rmEmpty = false;
-int force = false;
+bool verbose = false;
+bool recursive = false;
+bool rmEmpty = false;
+bool force = false;
 /*
 0 = false
 1 = prompt ONCE (-I) (when files > 3 or recursively)
 2 = prompt all  (-i)
 */
 int prompt = 0;
-int shouldPrompt = false;
-int preserveRoot = true;
+bool shouldPrompt = false;
+bool preserveRoot = true;
 
 int argCount; // for -I
 
@@ -221,7 +219,7 @@ to POSIX syscalls unlink() and rmdir()
 - [x] verbose
 */
 void removeFile(const char *fileName) {
-  int isEmpty = false;
+  bool isEmpty = false;
   struct stat file_info;
   
   if ((recursive && preserveRoot) && strcasecmp(fileName, "/") == 0) {

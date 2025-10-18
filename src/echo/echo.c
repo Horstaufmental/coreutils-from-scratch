@@ -6,13 +6,8 @@
 #include <unistd.h>
 #include <ctype.h>
 
-typedef enum {
-    True = 1,
-    False = 0
-} Bool;
-
-Bool noNewline = False;
-Bool backslashEscapes = False;
+bool noNewline = false;
+bool backslashEscapes = false;
 
 struct help_entry {
     const char *opt;
@@ -137,11 +132,11 @@ void print_help(const char *name) {
     for (int i = 0; backslash_entries[i].opt; i++) {
         printf("  %-*s  %s\n", maxlen, backslash_entries[i].opt, backslash_entries[i].desc);
     }
-    printf("\nYour shell may have its own version of echo, which usually supersedes\n");
-    printf("the version described here. Please refer to your shell's documentation\n");
-    printf("for details about the options it supports.\n\n");
-    printf("Consider using the printf(1) command instead,\n");
-    printf("as it avoids problems when outputting option-like strings.\n");
+    puts("Your shell may have its own version of echo, which usually supersedes\n"
+         "the version described here. Please refer to your shell's documentation\n"
+         "for details about the options it supports.\n\n"
+         "Consider using the printf(1) command instead,\n"
+         "as it avoids problems when outputting option-like strings.\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -152,13 +147,13 @@ int main(int argc, char *argv[]) {
                 print_help(argv[0]);
                 return 0;
             case 'n':
-                noNewline = True;
+                noNewline = true;
                 break;
             case 'e':
-                backslashEscapes = True;
+                backslashEscapes = true;
                 break;
             case 'E':
-                backslashEscapes = False;
+                backslashEscapes = false;
                 break;
             default:
                 break;
