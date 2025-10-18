@@ -82,7 +82,7 @@ int main(int argc __attribute__((unused)), char *argv[]) {
     } else {
       for (int i = 1; argv[i] != NULL; i++) {
         if (parse_time(argv[i], &timeSleep.tv_sec) == 0) {
-          printf("sleep: invalid time interval '%s'\nTry '%s --help' for more information.\n", argv[1], argv[0]);
+          fprintf(stderr, "sleep: invalid time interval '%s'\nTry '%s --help' for more information.\n", argv[1], argv[0]);
           return 1;
         }
         timeSleep.tv_nsec = 0;
@@ -90,7 +90,7 @@ int main(int argc __attribute__((unused)), char *argv[]) {
       }
     }
   } else {
-    printf("sleep: missing operand\nTry '%s --help' for more information.\n", argv[0]);
+    fprintf(stderr, "sleep: missing operand\nTry '%s --help' for more information.\n", argv[0]);
     return 1;
   }
   return 0;
