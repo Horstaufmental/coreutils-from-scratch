@@ -8,13 +8,11 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <argp.h>
+#include <stdbool.h>
 
-#define true 1
-#define false 0
-
-int verbose = false;
-int parents = false;
-int mode = false;
+bool verbose = false;
+bool parents = false;
+bool mode = false;
 
 struct help_entry {
   const char *opt;
@@ -56,7 +54,7 @@ void print_help(const char *name) {
 }
 
 void createDir(char *dirName, mode_t modeV) {
-  if (parents == true) {
+  if (parents) {
     char *tmp = strdup(dirName);
     char *p = tmp;
     int status = 0;
@@ -73,7 +71,7 @@ void createDir(char *dirName, mode_t modeV) {
         *p = '\0'; // temporaily terminate string
 
         if (mkdir(tmp, modeV) != 0) {
-          if (verbose == true) {
+          if (verbose) {
             printf("mkdir: created directory '%s'\n", tmp);
           }
           if (errno != EEXIST) {
@@ -81,7 +79,7 @@ void createDir(char *dirName, mode_t modeV) {
             break;
           }
         } else {
-          if (verbose == true) {
+          if (verbose) {
             printf("mkdir: created directory '%s'\n", tmp);
           }
         }
@@ -95,7 +93,7 @@ void createDir(char *dirName, mode_t modeV) {
           status = -1;
         }
       } else {
-        if (verbose == true) {
+        if (verbose) {
           printf("mkdir: created directory '%s'\n", tmp);
         }
       }
@@ -111,7 +109,7 @@ void createDir(char *dirName, mode_t modeV) {
   int check = mkdir(dirName, modeV);
 
   if (check == 0) {
-    if (verbose == true)
+    if (verbose)
       printf("mkdir: created directory '%s'\n", dirName);
   } else {
     printf("mkdir: cannot create directory '%s': %s\n", dirName,

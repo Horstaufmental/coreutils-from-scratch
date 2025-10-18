@@ -5,16 +5,12 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-
-typedef enum {
-  True = 1,
-  False = 0
-} Bool;
+#include <stdbool.h>
 
 // "If no option is specified, -P is assumed."
 // resolve all symlinks
 // otherwise use PWD from environment, even if it contains symlinks
-Bool physical = True;
+bool physical = true;
 
 struct help_entry {
   const char *opt;
@@ -52,9 +48,9 @@ int main(int argc __attribute__((unused)), char *argv[]) {
 
   if (argv[1] != NULL) {
     if (strcasecmp(argv[1], "--logical") == 0 || strcasecmp(argv[1], "-L") == 0) {
-      physical = False;
+      physical = false;
     } else if (strcasecmp(argv[1], "--physical") == 0 || strcasecmp(argv[1], "-L") == 0) {
-      physical = True;
+      physical = true;
     } else if (strcasecmp(argv[1], "--help") == 0) {
       print_help(argv[0]);
       return 0;
@@ -65,7 +61,7 @@ int main(int argc __attribute__((unused)), char *argv[]) {
   }
 
   if (!physical) {
-    write(1, pwd_env, strlen(pwd_env));
+    puts(pwd_env);
     return 0;
   }
   
@@ -73,8 +69,6 @@ int main(int argc __attribute__((unused)), char *argv[]) {
     fprintf(stderr, "pwd: cannot get current working directory: %s\n", strerror(errno));
   }
   
-  strncat(cwd, "\n", sizeof(cwd) - strlen(cwd) - 1);
-  write(1, cwd, strlen(cwd));
-  
+  puts(cwd);
   return 0;
 }

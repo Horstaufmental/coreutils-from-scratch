@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 struct help_entry {
   const char *opt;
@@ -32,10 +33,10 @@ void print_help(const char *name) {
 
 
 int main(int argc __attribute__((unused)), char *argv[]) {
-  static int ovr;
+  bool ovr = false;
   
   if (argv[1] == NULL) {
-    ovr = 1;
+    ovr = true;
   } else {
   if (strcasecmp(argv[1], "--help") == 0) {
       print_help(argv[0]);

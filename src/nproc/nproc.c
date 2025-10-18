@@ -3,13 +3,9 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-typedef enum {
-  True = 1,
-  False = 0
-} Bool;
-
-Bool showAll = False;
+bool showAll = false;
 int ignoreProc = 0;
 
 struct help_entry {
@@ -56,7 +52,7 @@ int main(int argc, char *argv[]) {
         print_help(argv[0]);
         return 0;
       case 2:
-        showAll = True;
+        showAll = true;
         break;
       case 3:
         ignoreProc = atoi(optarg);
@@ -68,10 +64,10 @@ int main(int argc, char *argv[]) {
   }
   
   switch (showAll) {
-    case True:
+    case true:
       np = sysconf(_SC_NPROCESSORS_CONF);
       break;
-    case False:
+    case false:
       np = sysconf(_SC_NPROCESSORS_ONLN);
       break;
   }
@@ -81,8 +77,7 @@ int main(int argc, char *argv[]) {
     np -= buffer;
   }
   
-  char buffer[sizeof(np)];
-  sprintf(buffer, "%d\n", np);
-  write(1, buffer, strlen(buffer));
+  puts(np);
+  return 0;
 }
 

@@ -2,8 +2,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
 
-static int silentOut = 0;
+bool silentOut = false;
 
 struct help_entry {
   const char *opt;
@@ -35,7 +36,7 @@ void print_help(const char *name) {
 int main(int argc __attribute__((unused)), char *argv[]) {
   if (argv[1] != NULL) {
     if (strcmp(argv[1], "--silent") == 0 || strcmp(argv[1], "--quiet") == 0 || strcmp(argv[1], "-s") == 0) {
-      silentOut = 1;
+      silentOut = true;
     } else if (strcmp(argv[1], "--help") == 0) {
       print_help(argv[0]);
       return 0;

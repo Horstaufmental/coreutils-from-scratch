@@ -2,14 +2,12 @@
 #define ARGS_H
 
 #include <getopt.h>
+#include <stdbool.h>
 
-#define true 1
-#define false 0
-
-int includeALL = false;
-int includeALLshort = false;
-int longFormat = false;
-int humanReadable = false;
+bool includeALL = false;
+bool includeALLshort = false;
+bool longFormat = false;
+bool humanReadable = false;
 
 static struct option long_options[] = {
     {"all", no_argument, 0, 'a'},
