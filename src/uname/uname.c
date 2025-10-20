@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <sys/utsname.h>
 #include <malloc.h>
+#include <stdbool.h>
+
+#define BUF_SIZE 1025
 
 #ifndef OPERATING_SYSTEM
   #define OPERATING_SYSTEM "unknown"
@@ -69,17 +72,26 @@ void print_help(const char *name) {
   }
 }
 
-void print_to_var(char *buf, char *str) {
-  char buffer[1025];
+void print_to_var(char *buf, char *str, bool comma) {
+  char buffer[BUF_SIZE];
+  buffer[0] = '\0';
   // printf("buf (1) : |%s\n", buf);
   // printf("str     : |%s\n", str);
-  strncpy(buffer, buf, sizeof(buffer) - 1);
+  snprintf(buffer, sizeof(buffer), "%s", buf ? buf : "");
   // printf("buffer  : |%s\n", buffer);
   if (strlen(buffer) == 0) {
-    strncpy(buf, str, sizeof(buffer) - 1);
-  } else
-    sprintf(buf, "%s %s", buffer, str);
-  // printf("buf (2) : |%s\n\n", buf);
+    snprintf(buf, BUF_SIZE, "%s", str);
+  } else {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wformat-truncation"
+    snprintf(buf, BUF_SIZE, "%s%s%s", buffer, comma ? "," : " ", str);
+    #pragma GCC diagnostic pop
+    // printf("buf (2) : |%s\n\n", buf);
+  }
+
+  if (strlen(buf) >= BUF_SIZE - 1) {
+    fprintf(stderr, "warning: print_to_var() output truncated.\n");
+  }
 }
 
 int to_print(unsigned int flags, char *proc, char *plat) {
@@ -96,23 +108,24 @@ int to_print(unsigned int flags, char *proc, char *plat) {
   if (buffer == NULL) {
     return 1;
   }
+  buffer[0] = '\0';
   
   if (flags & P_KERNEL)
-    print_to_var(buffer, buf.sysname);
+    print_to_var(buffer, buf.sysname, false);
   if (flags & P_NODE)
-    print_to_var(buffer, buf.nodename);
+    print_to_var(buffer, buf.nodename, false);
   if (flags & P_KERNELREL)
-    print_to_var(buffer, buf.release);
+    print_to_var(buffer, buf.release, false);
   if (flags & P_KERNELVER)
-    print_to_var(buffer, buf.version);
+    print_to_var(buffer, buf.version, false);
   if (flags & P_MACHINE)
-    print_to_var(buffer, buf.machine);
+    print_to_var(buffer, buf.machine, false);
   if (flags & P_PROCESSOR)
-    print_to_var(buffer, proc);
+    print_to_var(buffer, proc, false);
   if (flags & P_HWPLATFORM)
-    print_to_var(buffer, plat);
+    print_to_var(buffer, plat, false);
   if (flags & P_OS)
-    print_to_var(buffer, OPERATING_SYSTEM);
+    print_to_var(buffer, OPERATING_SYSTEM, false);
   puts(buffer);
 
   free(buffer);
