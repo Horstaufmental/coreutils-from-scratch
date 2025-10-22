@@ -121,7 +121,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] uptime
 - [ ] users
 - [ ] who
-- [ ] whoami
+- [x] whoami
 - [x] yes
 
 ## Information
