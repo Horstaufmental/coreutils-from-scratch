@@ -1,3 +1,9 @@
+<div align="left">
+  <picture>
+    <img src="https://github.com/Horstaufmental/Horstaufmental/raw/main/images/coreutils-from-scratch%20full%20icon.png" width="90%">
+  </picture>
+</div>
+
 # coreutils-from-scratch
 
 recreation of GNU's coreutils from scratch, primarily for learning purposes
