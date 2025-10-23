@@ -36,6 +36,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] dd
 - [ ] df
 - [ ] install
+- [ ] join
 - [ ] ln
 - [x] ls
 - [x] mkdir
@@ -49,6 +50,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] shred
 - [ ] sync
 - [x] touch
+- [ ] vdir
 ### Text Utilities (textutils) List
 - [ ] b2sum
 - [ ] base32
@@ -70,6 +72,10 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] paste
 - [ ] ptx
 - [ ] pr
+- [ ] sha1sum
+- [ ] sha224sum
+- [ ] sha256sum
+- [ ] sha384sum
 - [ ] sha512sum
 - [ ] shuf
 - [ ] sort
@@ -104,6 +110,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] nohup
 - [x] nproc
 - [ ] pathchk
+- [ ] pinky
 - [ ] printenv
 - [ ] printf
 - [x] pwd
@@ -111,6 +118,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 - [ ] seq
 - [x] sleep
 - [ ] stat
+- [ ] stdbuf
 - [ ] tee
 - [ ] test
 - [ ] timeout
