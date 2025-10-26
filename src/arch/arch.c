@@ -1,9 +1,25 @@
-#include <unistd.h>
-#include <string.h>
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * coreutils from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/utsname.h>
+#include <unistd.h>
 
 struct help_entry {
   const char *opt;
@@ -11,8 +27,7 @@ struct help_entry {
 };
 
 static struct help_entry help_entries[] = {
-  {"    --help", "display this help and exit"}
-};
+    {"    --help", "display this help and exit"}};
 
 void print_help(const char *name) {
   printf("Usage: %s [OPTION]...\n", name);
@@ -22,7 +37,8 @@ void print_help(const char *name) {
   int maxlen = 0;
   for (int i = 0; help_entries[i].opt; i++) {
     int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
+    if (len > maxlen)
+      maxlen = len;
   }
 
   // print each option aligned
@@ -39,7 +55,10 @@ int main(int argc __attribute__((unused)), char *argv[]) {
       print_help(argv[0]);
       return 0;
     } else {
-      fprintf(stderr, "%s: unrecognized option '%s'\nTry '%s --help' for more information", argv[0], argv[1], argv[0]);
+      fprintf(
+          stderr,
+          "%s: unrecognized option '%s'\nTry '%s --help' for more information",
+          argv[0], argv[1], argv[0]);
       return 1;
     }
   }

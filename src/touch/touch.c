@@ -1,15 +1,31 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * coreutils from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
-#include <limits.h>
 #include <utime.h>
-#include <stdlib.h>
 
 struct help_entry {
   char *opt;
@@ -43,26 +59,29 @@ static struct help_entry help_entries[] = {
      "                   WORD is access, atime, or use: equivalent to -a"
      "                   WORD is modify or mtime: equivalent to -m"},
     {"    --help", "display this help and exit"},
-    {0, 0}
-  };
+    {0, 0}};
 
 void print_help(const char *name) {
   printf("Usage: %s [OPTION]... FILE...\n"
-         "Update the access and modification times of each FILE to the current time.\n\n", name);
-  
+         "Update the access and modification times of each FILE to the current "
+         "time.\n\n",
+         name);
+
   puts("A FILE argument that does not exist is created empty, unless -c or -h\n"
-         "is supplied.\n");
+       "is supplied.\n");
 
   puts("A FILE argument string of - is handled specially and causes touch to\n"
        "change the times of the file associated with standard output.\n");
 
-  puts("Mandatory arguments to long options are mandatory for short options too.");
+  puts("Mandatory arguments to long options are mandatory for short options "
+       "too.");
 
   // find longest option string
   int maxlen = 0;
   for (int i = 0; help_entries[i].opt; i++) {
     int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
+    if (len > maxlen)
+      maxlen = len;
   }
 
   // print each option aligned
@@ -70,8 +89,10 @@ void print_help(const char *name) {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
   }
   fputs("\nExamples:\n"
-         "  cat f - g  Output f's contents, then standard input, then g's contents.\n"
-         "  cat        Copy standard input to standard output.\n", stdout);
+        "  cat f - g  Output f's contents, then standard input, then g's "
+        "contents.\n"
+        "  cat        Copy standard input to standard output.\n",
+        stdout);
 }
 
 #define CHANGE_ATIME (1 << 0)
@@ -101,7 +122,7 @@ int changeTime(char *name, unsigned int flags, int fd) {
       }
     }
   }
-  
+
   struct timespec times[2];
   if (!isT) {
     if (reference == NULL) {
@@ -129,15 +150,13 @@ int changeTime(char *name, unsigned int flags, int fd) {
     if (flags & CHANGE_ATIME) {
       times[0].tv_sec = t;
       times[0].tv_nsec = 0;
-    }
-    else
+    } else
       times[0].tv_nsec = UTIME_OMIT;
 
     if (flags & CHANGE_MTIME) {
       times[1].tv_sec = t;
       times[1].tv_nsec = 0;
-    }
-    else
+    } else
       times[1].tv_nsec = UTIME_OMIT;
   }
 
@@ -150,7 +169,7 @@ int changeTime(char *name, unsigned int flags, int fd) {
       return 1;
     }
   }
-  
+
   return 0;
 }
 
@@ -195,11 +214,13 @@ time_t parse_timestamp(const char *stamp) {
 
   const char *p = stamp;
   if (len >= 12 && len <= 15) {
-    strncpy(buf, p, 2); p += 2;
+    strncpy(buf, p, 2);
+    p += 2;
     year_full = atoi(buf) * 100; // century
   }
 
-  strncpy(buf, p, 2); p += 2;
+  strncpy(buf, p, 2);
+  p += 2;
   year_short = atoi(buf);
   if (year_full == 0) {
     // infer century
@@ -208,10 +229,18 @@ time_t parse_timestamp(const char *stamp) {
   }
   tm.tm_year = (year_full + year_short) - 1900;
 
-  strncpy(buf, p, 2); p += 2; tm.tm_mon = atoi(buf) - 1; // month
-  strncpy(buf, p, 2); p += 2; tm.tm_mday = atoi(buf);    // day
-  strncpy(buf, p, 2); p += 2; tm.tm_hour = atoi(buf);    // hour
-  strncpy(buf, p, 2); p += 2; tm.tm_min = atoi(buf);     // minute
+  strncpy(buf, p, 2);
+  p += 2;
+  tm.tm_mon = atoi(buf) - 1; // month
+  strncpy(buf, p, 2);
+  p += 2;
+  tm.tm_mday = atoi(buf); // day
+  strncpy(buf, p, 2);
+  p += 2;
+  tm.tm_hour = atoi(buf); // hour
+  strncpy(buf, p, 2);
+  p += 2;
+  tm.tm_min = atoi(buf); // minute
 
   tm.tm_sec = 0;
   if (*p == '.') {
@@ -237,8 +266,7 @@ TODO:
 int main(int argc, char *argv[]) {
   unsigned int flags = CHANGE_ATIME | CHANGE_MTIME;
   int opt;
-  while ((opt = getopt_long(argc, argv, "chr:afmt:", long_options, 0)) !=
-         -1) {
+  while ((opt = getopt_long(argc, argv, "chr:afmt:", long_options, 0)) != -1) {
     switch (opt) {
     case 'a':
       onlyAccess = true;
@@ -257,7 +285,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'r':
       if (optarg != NULL)
-      reference = optarg;
+        reference = optarg;
       else {
         fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
         return 1;
@@ -265,8 +293,10 @@ int main(int argc, char *argv[]) {
       break;
     case 't':
       if (optarg == NULL) {
-        fprintf(stderr, "touch: option requires an argument -- 't'\n"
-                        "Try '%s --help' for more information.\n", argv[0]);
+        fprintf(stderr,
+                "touch: option requires an argument -- 't'\n"
+                "Try '%s --help' for more information.\n",
+                argv[0]);
         return 1;
       }
       t = parse_timestamp(optarg);
@@ -285,7 +315,8 @@ int main(int argc, char *argv[]) {
         break;
       } else if (strcmp(optarg, "modify") == 0 ||
                  strcmp(optarg, "mtime") == 0) {
-        onlyModTime = true;;
+        onlyModTime = true;
+        ;
         break;
       } else {
         fprintf(stderr,
@@ -324,7 +355,7 @@ int main(int argc, char *argv[]) {
     flags &= ~CHANGE_MTIME;
   if (onlyModTime)
     flags &= ~CHANGE_ATIME;
- 
+
   for (; optind < argc; optind++) {
     if (touchFile(argv[optind], flags) != 0) {
       fprintf(stderr, "touch: cannot touch '%s': %s\n", argv[optind],

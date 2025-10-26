@@ -1,60 +1,79 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <signal.h>
-#include <stdlib.h>
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * coreutils from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 struct help_entry {
   char *opt;
   char *desc;
 };
 
-// most distros will ship kill from utils-linux (such as the case with my arch linux)
-// however, our goal is to be recreating **GNU** Coreutils, not utils-linux
-struct option long_options[] = {
-  {"signal", required_argument, 0, 's'},
-  {"list", no_argument, 0, 'l'},
-  {"table", no_argument, 0, 't'},
-  {"help", no_argument, 0, 1},
-  {0, 0, 0, 0}
-};
+// most distros will ship kill from utils-linux (such as the case with my arch
+// linux) however, our goal is to be recreating **GNU** Coreutils, not
+// utils-linux
+struct option long_options[] = {{"signal", required_argument, 0, 's'},
+                                {"list", no_argument, 0, 'l'},
+                                {"table", no_argument, 0, 't'},
+                                {"help", no_argument, 0, 1},
+                                {0, 0, 0, 0}};
 
 static struct help_entry help_entries[] = {
-  {"-s, --signal=SIGNAL, -SIGNAL", "specify the name or number of the signal\n"
-   "                                to be sent"},
-  {"-l, --list", "list signal names, or convert signal names to/from numbers"},
-  {"-t, --table", "print a table of signal information"},
-  {"    --help", "display this help and exit"},
-  {0, 0}
-};
+    {"-s, --signal=SIGNAL, -SIGNAL",
+     "specify the name or number of the signal\n"
+     "                                to be sent"},
+    {"-l, --list",
+     "list signal names, or convert signal names to/from numbers"},
+    {"-t, --table", "print a table of signal information"},
+    {"    --help", "display this help and exit"},
+    {0, 0}};
 
 void print_help(const char *name) {
   printf("Usage: %s [-s SIGNAL | -SIGNAL] PID...\n"
          "  or:  %s -l [SIGNAL]...\n"
-         "  or:  %s -t [SIGNAL]...\n", name, name, name);
+         "  or:  %s -t [SIGNAL]...\n",
+         name, name, name);
   puts("Send signals to processes, or list signals.\n");
 
-  puts("Mandatory arguments to long options are mandatory for short options too.\n");
+  puts("Mandatory arguments to long options are mandatory for short options "
+       "too.\n");
 
   // find longest option string
   int maxlen = 0;
   for (int i = 0; help_entries[i].opt; i++) {
     int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
+    if (len > maxlen)
+      maxlen = len;
   }
 
   // print each option aligned
   for (int i = 0; help_entries[i].opt; i++) {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
   }
-  puts("\nSIGNAL may be a signal name like 'HUP' (except for -SIGNAL), or a signal number like '1',\n"
+  puts("\nSIGNAL may be a signal name like 'HUP' (except for -SIGNAL), or a "
+       "signal number like '1',\n"
        "or the exit status of a process terminated by a signal.\n"
-       "PID is an integer; if negative it identifies a process group."
-  );
+       "PID is an integer; if negative it identifies a process group.");
 }
 
 struct signalLists {
@@ -62,7 +81,7 @@ struct signalLists {
   int num;
   const char *desc;
 };
-  
+
 int signalFromName(const char *name, struct signalLists *sigs) {
   if (strncasecmp(name, "SIG", 3) == 0)
     name += 3;
@@ -84,16 +103,19 @@ const char *signalFromNumber(int number, struct signalLists *sigs) {
 }
 
 #define PRINT_TABLE (1 << 0)
-#define PRINT_LIST  (1 << 1)
+#define PRINT_LIST (1 << 1)
 int parseStringToInt(const char *name, int *num) {
   char *endptr;
   errno = 0;
 
   double val = strtod(name, &endptr);
 
-  if (endptr == name) return 0;   // no number found
-  if (errno == ERANGE) return 0; // overflow/underflow
-  if (*endptr != '\0') return 0; // extra junk at end
+  if (endptr == name)
+    return 0; // no number found
+  if (errno == ERANGE)
+    return 0; // overflow/underflow
+  if (*endptr != '\0')
+    return 0; // extra junk at end
 
   *num = val;
   return 1;
@@ -138,71 +160,157 @@ int main(int argc, char *argv[]) {
   int SigRealtimeMin = SIGRTMIN;
   int SigRealtimeMax = SIGRTMAX;
   struct signalLists sigs[] = {
-    {"EXIT", 0, "Unknown signal 0"},
-    {"HUP", SIGHUP, "Hangup"},
-    {"INT", SIGINT, "Interrupt"},
-    {"QUIT", SIGQUIT, "Quit"},
-    {"ILL", SIGILL, "Illegal instruction"},
-    {"TRAP", SIGTRAP, "Trace/breakpoint trap"},
-    {"ABRT", SIGABRT, "Aborted"},
-    {"BUS", SIGBUS, "Bus error"},
-    {"FPE", SIGFPE, "Floating point exception"},
-    {"KILL", SIGKILL, "Killed"},
-    {"USR1", SIGUSR1, "User defined signal 1"},
-    {"SEGV", SIGSEGV, "Segmentation fault"},
-    {"USR2", SIGUSR2, "User defined signal 2"},
-    {"PIPE", SIGPIPE, "Broken pipe"},
-    {"ALRM", SIGALRM, "Alarm clock"},
-    {"TERM", SIGTERM, "Terminated"},
-    {"STKFLT", SIGSTKFLT, "Stack fault"},
-    {"CHLD", SIGCHLD, "Child exited"},
-    {"CONT", SIGCONT, "Continued"},
-    {"STOP", SIGSTOP, "Stopped (signal)"},
-    {"TSTP", SIGTSTP, "Stopped"},
-    {"TTIN", SIGTTIN, "Stopped (tty input)"},
-    {"TTOU", SIGTTOU, "Stopped (tty output)"},
-    {"URG", SIGURG, "Urgent I/O condition"},
-    {"XCPU", SIGXCPU, "CPU time limit exceeded"},
-    {"XFSZ", SIGXFSZ, "File size limit exceeded"},
-    {"VTALRM", SIGVTALRM, "Virtual timer expired"},
-    {"PROF", SIGPROF, "Profiling timer expired"},
-    {"WINCH", SIGWINCH, "Window changed"},
-    {"POLL", SIGPOLL, "I/O possible"},
-    {"PWR", SIGPWR, "Power failure"},
-    {"SYS", SIGSYS, "Bad system call"},
-    {"RTMIN", SigRealtimeMin, "Real-time signal 0"},
-    {"RTMIN+1",  (SigRealtimeMin+1  <= SigRealtimeMax) ? SigRealtimeMin+1  : SigRealtimeMax, "Real-time signal 1"},
-    {"RTMIN+2",  (SigRealtimeMin+2  <= SigRealtimeMax) ? SigRealtimeMin+2  : SigRealtimeMax, "Real-time signal 2"},
-    {"RTMIN+3",  (SigRealtimeMin+3  <= SigRealtimeMax) ? SigRealtimeMin+3  : SigRealtimeMax, "Real-time signal 3"},
-    {"RTMIN+4",  (SigRealtimeMin+4  <= SigRealtimeMax) ? SigRealtimeMin+4  : SigRealtimeMax, "Real-time signal 4"},
-    {"RTMIN+5",  (SigRealtimeMin+5  <= SigRealtimeMax) ? SigRealtimeMin+5  : SigRealtimeMax, "Real-time signal 5"},
-    {"RTMIN+6",  (SigRealtimeMin+6  <= SigRealtimeMax) ? SigRealtimeMin+6  : SigRealtimeMax, "Real-time signal 6"},
-    {"RTMIN+7",  (SigRealtimeMin+7  <= SigRealtimeMax) ? SigRealtimeMin+7  : SigRealtimeMax, "Real-time signal 7"},
-    {"RTMIN+8",  (SigRealtimeMin+8  <= SigRealtimeMax) ? SigRealtimeMin+8  : SigRealtimeMax, "Real-time signal 8"},
-    {"RTMIN+9",  (SigRealtimeMin+9  <= SigRealtimeMax) ? SigRealtimeMin+9  : SigRealtimeMax, "Real-time signal 9"},
-    {"RTMIN+10", (SigRealtimeMin+10 <= SigRealtimeMax) ? SigRealtimeMin+10 : SigRealtimeMax, "Real-time signal 10"},
-    {"RTMIN+11", (SigRealtimeMin+11 <= SigRealtimeMax) ? SigRealtimeMin+11 : SigRealtimeMax, "Real-time signal 11"},
-    {"RTMIN+12", (SigRealtimeMin+12 <= SigRealtimeMax) ? SigRealtimeMin+12 : SigRealtimeMax, "Real-time signal 12"},
-    {"RTMIN+13", (SigRealtimeMin+13 <= SigRealtimeMax) ? SigRealtimeMin+13 : SigRealtimeMax, "Real-time signal 13"},
-    {"RTMIN+14", (SigRealtimeMin+14 <= SigRealtimeMax) ? SigRealtimeMin+14 : SigRealtimeMax, "Real-time signal 14"},
-    {"RTMIN+15", (SigRealtimeMin+15 <= SigRealtimeMax) ? SigRealtimeMin+15 : SigRealtimeMax, "Real-time signal 15"},
-    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 16"},
-    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 17"},
-    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 18"},
-    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 19"},
-    {"RTMAX-14", (SigRealtimeMax-14 <= SigRealtimeMax) ? SigRealtimeMax-14 : SigRealtimeMax, "Real-time signal 20"},
-    {"RTMAX-9",  (SigRealtimeMax-9  <= SigRealtimeMax) ? SigRealtimeMax-9  : SigRealtimeMax, "Real-time signal 21"},
-    {"RTMAX-8",  (SigRealtimeMax-8  <= SigRealtimeMax) ? SigRealtimeMax-8  : SigRealtimeMax, "Real-time signal 22"},
-    {"RTMAX-7",  (SigRealtimeMax-7  <= SigRealtimeMax) ? SigRealtimeMax-7  : SigRealtimeMax, "Real-time signal 23"},
-    {"RTMAX-6",  (SigRealtimeMax-6  <= SigRealtimeMax) ? SigRealtimeMax-6  : SigRealtimeMax, "Real-time signal 24"},
-    {"RTMAX-5",  (SigRealtimeMax-5  <= SigRealtimeMax) ? SigRealtimeMax-5  : SigRealtimeMax, "Real-time signal 25"},
-    {"RTMAX-4",  (SigRealtimeMax-4  <= SigRealtimeMax) ? SigRealtimeMax-4  : SigRealtimeMax, "Real-time signal 26"},
-    {"RTMAX-3",  (SigRealtimeMax-3  <= SigRealtimeMax) ? SigRealtimeMax-3  : SigRealtimeMax, "Real-time signal 27"},
-    {"RTMAX-2",  (SigRealtimeMax-2  <= SigRealtimeMax) ? SigRealtimeMax-2  : SigRealtimeMax, "Real-time signal 28"},
-    {"RTMAX-1",  (SigRealtimeMax-1  <= SigRealtimeMax) ? SigRealtimeMax-1  : SigRealtimeMax, "Real-time signal 29"},
-    {"RTMAX", SigRealtimeMax, "Real-time signal 30"},
-    {NULL, 0, NULL}
-  };
+      {"EXIT", 0, "Unknown signal 0"},
+      {"HUP", SIGHUP, "Hangup"},
+      {"INT", SIGINT, "Interrupt"},
+      {"QUIT", SIGQUIT, "Quit"},
+      {"ILL", SIGILL, "Illegal instruction"},
+      {"TRAP", SIGTRAP, "Trace/breakpoint trap"},
+      {"ABRT", SIGABRT, "Aborted"},
+      {"BUS", SIGBUS, "Bus error"},
+      {"FPE", SIGFPE, "Floating point exception"},
+      {"KILL", SIGKILL, "Killed"},
+      {"USR1", SIGUSR1, "User defined signal 1"},
+      {"SEGV", SIGSEGV, "Segmentation fault"},
+      {"USR2", SIGUSR2, "User defined signal 2"},
+      {"PIPE", SIGPIPE, "Broken pipe"},
+      {"ALRM", SIGALRM, "Alarm clock"},
+      {"TERM", SIGTERM, "Terminated"},
+      {"STKFLT", SIGSTKFLT, "Stack fault"},
+      {"CHLD", SIGCHLD, "Child exited"},
+      {"CONT", SIGCONT, "Continued"},
+      {"STOP", SIGSTOP, "Stopped (signal)"},
+      {"TSTP", SIGTSTP, "Stopped"},
+      {"TTIN", SIGTTIN, "Stopped (tty input)"},
+      {"TTOU", SIGTTOU, "Stopped (tty output)"},
+      {"URG", SIGURG, "Urgent I/O condition"},
+      {"XCPU", SIGXCPU, "CPU time limit exceeded"},
+      {"XFSZ", SIGXFSZ, "File size limit exceeded"},
+      {"VTALRM", SIGVTALRM, "Virtual timer expired"},
+      {"PROF", SIGPROF, "Profiling timer expired"},
+      {"WINCH", SIGWINCH, "Window changed"},
+      {"POLL", SIGPOLL, "I/O possible"},
+      {"PWR", SIGPWR, "Power failure"},
+      {"SYS", SIGSYS, "Bad system call"},
+      {"RTMIN", SigRealtimeMin, "Real-time signal 0"},
+      {"RTMIN+1",
+       (SigRealtimeMin + 1 <= SigRealtimeMax) ? SigRealtimeMin + 1
+                                              : SigRealtimeMax,
+       "Real-time signal 1"},
+      {"RTMIN+2",
+       (SigRealtimeMin + 2 <= SigRealtimeMax) ? SigRealtimeMin + 2
+                                              : SigRealtimeMax,
+       "Real-time signal 2"},
+      {"RTMIN+3",
+       (SigRealtimeMin + 3 <= SigRealtimeMax) ? SigRealtimeMin + 3
+                                              : SigRealtimeMax,
+       "Real-time signal 3"},
+      {"RTMIN+4",
+       (SigRealtimeMin + 4 <= SigRealtimeMax) ? SigRealtimeMin + 4
+                                              : SigRealtimeMax,
+       "Real-time signal 4"},
+      {"RTMIN+5",
+       (SigRealtimeMin + 5 <= SigRealtimeMax) ? SigRealtimeMin + 5
+                                              : SigRealtimeMax,
+       "Real-time signal 5"},
+      {"RTMIN+6",
+       (SigRealtimeMin + 6 <= SigRealtimeMax) ? SigRealtimeMin + 6
+                                              : SigRealtimeMax,
+       "Real-time signal 6"},
+      {"RTMIN+7",
+       (SigRealtimeMin + 7 <= SigRealtimeMax) ? SigRealtimeMin + 7
+                                              : SigRealtimeMax,
+       "Real-time signal 7"},
+      {"RTMIN+8",
+       (SigRealtimeMin + 8 <= SigRealtimeMax) ? SigRealtimeMin + 8
+                                              : SigRealtimeMax,
+       "Real-time signal 8"},
+      {"RTMIN+9",
+       (SigRealtimeMin + 9 <= SigRealtimeMax) ? SigRealtimeMin + 9
+                                              : SigRealtimeMax,
+       "Real-time signal 9"},
+      {"RTMIN+10",
+       (SigRealtimeMin + 10 <= SigRealtimeMax) ? SigRealtimeMin + 10
+                                               : SigRealtimeMax,
+       "Real-time signal 10"},
+      {"RTMIN+11",
+       (SigRealtimeMin + 11 <= SigRealtimeMax) ? SigRealtimeMin + 11
+                                               : SigRealtimeMax,
+       "Real-time signal 11"},
+      {"RTMIN+12",
+       (SigRealtimeMin + 12 <= SigRealtimeMax) ? SigRealtimeMin + 12
+                                               : SigRealtimeMax,
+       "Real-time signal 12"},
+      {"RTMIN+13",
+       (SigRealtimeMin + 13 <= SigRealtimeMax) ? SigRealtimeMin + 13
+                                               : SigRealtimeMax,
+       "Real-time signal 13"},
+      {"RTMIN+14",
+       (SigRealtimeMin + 14 <= SigRealtimeMax) ? SigRealtimeMin + 14
+                                               : SigRealtimeMax,
+       "Real-time signal 14"},
+      {"RTMIN+15",
+       (SigRealtimeMin + 15 <= SigRealtimeMax) ? SigRealtimeMin + 15
+                                               : SigRealtimeMax,
+       "Real-time signal 15"},
+      {"RTMAX-14",
+       (SigRealtimeMax - 14 <= SigRealtimeMax) ? SigRealtimeMax - 14
+                                               : SigRealtimeMax,
+       "Real-time signal 16"},
+      {"RTMAX-14",
+       (SigRealtimeMax - 14 <= SigRealtimeMax) ? SigRealtimeMax - 14
+                                               : SigRealtimeMax,
+       "Real-time signal 17"},
+      {"RTMAX-14",
+       (SigRealtimeMax - 14 <= SigRealtimeMax) ? SigRealtimeMax - 14
+                                               : SigRealtimeMax,
+       "Real-time signal 18"},
+      {"RTMAX-14",
+       (SigRealtimeMax - 14 <= SigRealtimeMax) ? SigRealtimeMax - 14
+                                               : SigRealtimeMax,
+       "Real-time signal 19"},
+      {"RTMAX-14",
+       (SigRealtimeMax - 14 <= SigRealtimeMax) ? SigRealtimeMax - 14
+                                               : SigRealtimeMax,
+       "Real-time signal 20"},
+      {"RTMAX-9",
+       (SigRealtimeMax - 9 <= SigRealtimeMax) ? SigRealtimeMax - 9
+                                              : SigRealtimeMax,
+       "Real-time signal 21"},
+      {"RTMAX-8",
+       (SigRealtimeMax - 8 <= SigRealtimeMax) ? SigRealtimeMax - 8
+                                              : SigRealtimeMax,
+       "Real-time signal 22"},
+      {"RTMAX-7",
+       (SigRealtimeMax - 7 <= SigRealtimeMax) ? SigRealtimeMax - 7
+                                              : SigRealtimeMax,
+       "Real-time signal 23"},
+      {"RTMAX-6",
+       (SigRealtimeMax - 6 <= SigRealtimeMax) ? SigRealtimeMax - 6
+                                              : SigRealtimeMax,
+       "Real-time signal 24"},
+      {"RTMAX-5",
+       (SigRealtimeMax - 5 <= SigRealtimeMax) ? SigRealtimeMax - 5
+                                              : SigRealtimeMax,
+       "Real-time signal 25"},
+      {"RTMAX-4",
+       (SigRealtimeMax - 4 <= SigRealtimeMax) ? SigRealtimeMax - 4
+                                              : SigRealtimeMax,
+       "Real-time signal 26"},
+      {"RTMAX-3",
+       (SigRealtimeMax - 3 <= SigRealtimeMax) ? SigRealtimeMax - 3
+                                              : SigRealtimeMax,
+       "Real-time signal 27"},
+      {"RTMAX-2",
+       (SigRealtimeMax - 2 <= SigRealtimeMax) ? SigRealtimeMax - 2
+                                              : SigRealtimeMax,
+       "Real-time signal 28"},
+      {"RTMAX-1",
+       (SigRealtimeMax - 1 <= SigRealtimeMax) ? SigRealtimeMax - 1
+                                              : SigRealtimeMax,
+       "Real-time signal 29"},
+      {"RTMAX", SigRealtimeMax, "Real-time signal 30"},
+      {NULL, 0, NULL}};
 
   unsigned int flags;
   int sig = SIGTERM; // default if no SIGNAL is specified
@@ -232,41 +340,41 @@ int main(int argc, char *argv[]) {
         break;
       }
 
-      fprintf(stderr, "%s: invalid option -- '%s'\n"
-      "Try '%s --help' for more information.\n",
-      argv[0], maybe ? maybe : "?", argv[0]);
+      fprintf(stderr,
+              "%s: invalid option -- '%s'\n"
+              "Try '%s --help' for more information.\n",
+              argv[0], maybe ? maybe : "?", argv[0]);
       return 1;
     }
 
     switch (opt) {
-      case 's':
-        if (optarg != NULL) { // check if is number
-          int num;
-          if (parseStringToInt(optarg, &num) != 1) { // is string
-            if ((num = signalFromName(optarg, sigs)) == -1) {
-              fprintf(stderr, "kill: '%s': invalid signal\n", optarg);
-              return 1;
-            }
-          }
-          if (num < 0 || num > 64) {
-            fprintf(stderr, "kill: '%d': invalid signal\n", num);
+    case 's':
+      if (optarg != NULL) { // check if is number
+        int num;
+        if (parseStringToInt(optarg, &num) != 1) { // is string
+          if ((num = signalFromName(optarg, sigs)) == -1) {
+            fprintf(stderr, "kill: '%s': invalid signal\n", optarg);
             return 1;
           }
-          sig = num;
         }
-        break;
-      case 'l':
-        flags |= PRINT_LIST;
-        break;
-      case 't':
-        flags |= PRINT_TABLE;
-        break;
-      case 1:
-        print_help(argv[0]);
-        return 0;
+        if (num < 0 || num > 64) {
+          fprintf(stderr, "kill: '%d': invalid signal\n", num);
+          return 1;
+        }
+        sig = num;
+      }
+      break;
+    case 'l':
+      flags |= PRINT_LIST;
+      break;
+    case 't':
+      flags |= PRINT_TABLE;
+      break;
+    case 1:
+      print_help(argv[0]);
+      return 0;
     }
   }
-
 
   if (optind < argc) {
     arg = argv[optind];
@@ -288,14 +396,16 @@ int main(int argc, char *argv[]) {
     }
   }
 
-
   if (flags & PRINT_LIST) {
     if (arg == NULL) {
-      if ((flags & (PRINT_LIST | PRINT_TABLE)) != (PRINT_LIST | PRINT_TABLE)) // PRINT_LIST !=NAND=! PRINT_TABLE
+      if ((flags & (PRINT_LIST | PRINT_TABLE)) !=
+          (PRINT_LIST | PRINT_TABLE)) // PRINT_LIST !=NAND=! PRINT_TABLE
         printSignals(NULL, sigs, PRINT_LIST);
       else {
-        fprintf(stderr, "kill: multiple -l or -t options specified\n"
-        "Try '%s --help' for more information.\n", argv[0]);
+        fprintf(stderr,
+                "kill: multiple -l or -t options specified\n"
+                "Try '%s --help' for more information.\n",
+                argv[0]);
         return 1;
       }
       return 0;
@@ -324,24 +434,30 @@ int main(int argc, char *argv[]) {
       }
     }
   } else if (flags & PRINT_TABLE) {
-    if ((flags & (PRINT_LIST | PRINT_TABLE)) != (PRINT_LIST | PRINT_TABLE)) // PRINT_LIST !=NAND=! PRINT_TABLE
+    if ((flags & (PRINT_LIST | PRINT_TABLE)) !=
+        (PRINT_LIST | PRINT_TABLE)) // PRINT_LIST !=NAND=! PRINT_TABLE
       printSignals(NULL, sigs, PRINT_TABLE);
     else {
-      fprintf(stderr, "kill: multiple -l or -t options specified\n"
-      "Try '%s --help' for more information.\n", argv[0]);
+      fprintf(stderr,
+              "kill: multiple -l or -t options specified\n"
+              "Try '%s --help' for more information.\n",
+              argv[0]);
       return 1;
     }
     return 0;
   } else if (flags & (PRINT_LIST | PRINT_TABLE)) {
-    fprintf(stderr, "kill: multiple -l or -t options specified\n"
-    "Try '%s --help' for more information.\n", argv[0]);
+    fprintf(stderr,
+            "kill: multiple -l or -t options specified\n"
+            "Try '%s --help' for more information.\n",
+            argv[0]);
     return 1;
   }
 
   if (optind == argc) {
-    fprintf(stderr, "kill: no process ID specified\n"
-                    "Try '%s --help' for more information.\n", argv[0]
-    );
+    fprintf(stderr,
+            "kill: no process ID specified\n"
+            "Try '%s --help' for more information.\n",
+            argv[0]);
     return 1;
   }
 
@@ -352,7 +468,8 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     if (kill(pid, sig) != 0) {
-      fprintf(stderr, "kill: sending signal to %d failed: %s\n", pid, strerror(errno));
+      fprintf(stderr, "kill: sending signal to %d failed: %s\n", pid,
+              strerror(errno));
       return 1;
     }
   }

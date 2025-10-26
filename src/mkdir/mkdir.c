@@ -1,14 +1,30 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * coreutils from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
+#include <argp.h>
 #include <dirent.h>
 #include <errno.h>
+#include <getopt.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <getopt.h>
-#include <argp.h>
-#include <stdbool.h>
 
 bool verbose = false;
 bool parents = false;
@@ -19,34 +35,34 @@ struct help_entry {
   const char *desc;
 };
 
-static struct option long_options[] = {
-  {"verbose", no_argument, 0, 'v'},
-  {"parents", no_argument, 0, 'p'},
-  {"mode", required_argument, 0, 'm'},
-  {"help", no_argument, 0, 1},
-  {0, 0, 0, 0}
-};
+static struct option long_options[] = {{"verbose", no_argument, 0, 'v'},
+                                       {"parents", no_argument, 0, 'p'},
+                                       {"mode", required_argument, 0, 'm'},
+                                       {"help", no_argument, 0, 1},
+                                       {0, 0, 0, 0}};
 
 static struct help_entry help_entries[] = {
-  {"-m, --mode=MODE", "set file mode (as in chmod), not a=rwx - umask"},
-  {"-p, --parents", "no error if existing, make parent directories as needed,\n"
-  "                  with their file modes unaffected by any -m option"},
-  {"-v, --verbose", "print a message for each created directory"},
-  {"--help", "display this help and exit"}
-};
+    {"-m, --mode=MODE", "set file mode (as in chmod), not a=rwx - umask"},
+    {"-p, --parents",
+     "no error if existing, make parent directories as needed,\n"
+     "                  with their file modes unaffected by any -m option"},
+    {"-v, --verbose", "print a message for each created directory"},
+    {"--help", "display this help and exit"}};
 
 void print_help(const char *name) {
   printf("Usage: %s [OPTION]... DIRECTORY...\n", name);
   printf("Create the DIRECTORY(ies), if they do not already exist.\n\n");
-  printf("Mandatory arguments to long options are mandatory for short options too.\n");
+  printf("Mandatory arguments to long options are mandatory for short options "
+         "too.\n");
 
   // find longest option string
   int maxlen = 0;
   for (int i = 0; help_entries[i].opt; i++) {
     int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
+    if (len > maxlen)
+      maxlen = len;
   }
-  
+
   // print each option aligned
   for (int i = 0; help_entries[i].opt; i++) {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
@@ -98,7 +114,7 @@ void createDir(char *dirName, mode_t modeV) {
         }
       }
     }
-    
+
     free(tmp);
     if (status == -1) {
       printf("mkdir: cannot create directory '%s'\n", dirName);
@@ -135,7 +151,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'm':
       mode = true;
-      modeV = (mode_t) strtol(optarg, NULL, 8);
+      modeV = (mode_t)strtol(optarg, NULL, 8);
       break;
     case 1:
       print_help(argv[0]);

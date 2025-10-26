@@ -1,3 +1,19 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * coreutils from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 #include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <getopt.h>
@@ -89,10 +105,10 @@ void print_to_var(char *buf, char *str, bool comma) {
   if (strlen(buffer) == 0) {
     snprintf(buf, BUF_SIZE, "%s", str);
   } else {
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wformat-truncation"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
     snprintf(buf, BUF_SIZE, "%s%s%s", buffer, comma ? "," : " ", str);
-    #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
     // printf("buf (2) : |%s\n\n", buf);
   }
 
@@ -313,7 +329,7 @@ int print_id(unsigned int flags, char *user) {
 
     if ((~flags & P_ZERO) != 0)
       fputs("\n", stdout);
-    
+
     free(buffer);
     free(gids);
   }
