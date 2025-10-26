@@ -142,6 +142,15 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [x] whoami
 - [x] yes
 
+## License
+
+originally this project is licensed under the **MIT License**, but starting from `10/26/2025` (now formally known as the Okami Era), is now licensed under the **GNU General Public License v3.0 (GPLv3).**
+
+you are free to:
+
+- use, modify, and redistribute this software under the terms of the GNU GPLv3.
+- continue using earlier releases under their original MIT terms
+
 ## Information
 
 i practically dont have any other primary source of contact so you can contact me through Discord
