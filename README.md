@@ -6,19 +6,19 @@
 
 # coreutils-from-scratch
 
-recreation of GNU's coreutils from scratch, primarily for learning purposes
+recreation of GNU's coreutils from scratch, solely for learning purposes
 
 ## Prologue
 
-one day at school, as i was about to hop on tf2 to play, an idea suddenly came to my mind:
+one day at school, as i was about to hop on tf2 to play during a lunch break, an idea suddenly came to my mind:
 
 > What if I recreate the coreutils all from scratch?
 
-so that's how this repo came to be
+so that's how this project came to be
 
 ## Usage
 
-unless if you wanted to test the tools, there's no point of using these tools for daily use. just use actual well maintained implementations like from GNU or BusyBox.
+this is mostly just for learning purposes and are not built with the mindset to be used as your daily coreutils programs
 
 for most tools that only consisted of one single source code file, `.c` can be simply complied with a compiler in your terminal like so:
 
@@ -28,11 +28,15 @@ $ gcc mkdir.c -o mkdir
 
 while tools that have more than one files will usually include a `Makefile`, which can be simply be built by running `make` in your terminal
 
-a prebuilt binary (for x86_64 devices) can be found in most of the tools (usually in the folder `bin` in each respective tool's folder)
+a prebuilt binary (usually for x86_64 devices) can be found in most of the tools (usually in the each of the respective tool's folder or inside their `bin` folder)
 
 ## Features
 
-since this whole purpose are for learning, most utilities will be quite unoptimizied and lacking most functionality from their original GNU's counterpart (and horribly written)
+since this whole purpose are for learning, most utilities will be quite unoptimizied and lacking some functionality from their original GNU's counterpart (and horribly written)
+
+some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
+
+> **Total of 100 programs: currently only 20 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
