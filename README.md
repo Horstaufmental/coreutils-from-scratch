@@ -36,7 +36,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently only 20 has been made**
+> **Total of 100 programs: currently only 21 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -52,7 +52,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [x] mkdir
 - [ ] mkfifo
 - [ ] mknod
-- [ ] mktemp
+- [x] mktemp
 - [ ] mv
 - [ ] realpath
 - [x] rm
