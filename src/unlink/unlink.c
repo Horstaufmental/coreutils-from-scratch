@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,6 +19,11 @@
 #include <errno.h>
 #include <unistd.h>
 
+#define PROGRAM_NAME "unlink"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
+
 struct help_entry {
   const char *opt;
   const char *desc;
@@ -26,6 +31,7 @@ struct help_entry {
 
 static struct help_entry help_entries[] = {
     {"   --help", "display this help and exit"},
+    {"   --version", "output version information and exit"},
     {0, 0}
 };
 
@@ -47,6 +53,16 @@ void print_help(const char *name) {
     }
 }
 
+void print_version() {
+    printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+    printf("Copyright (C) 2025 %s\n", AUTHORS);
+    puts("License GPLv3+: GNU GPL version 3 or later "
+    "<https://gnu.org/licenses/gpl.html>.\n"
+    "This is free software: you are free to change and redistribute it.\n"
+    "There is NO WARRANTY, to the extent permitted by law.\n");
+    printf("Written by %s\n", AUTHORS);
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "unlink: missing operand\n"
@@ -56,6 +72,9 @@ int main(int argc, char *argv[]) {
     if (argv[1] != NULL) {
         if (strcmp(argv[1], "--help") == 0) {
             print_help(argv[0]);
+            return 0;
+        } else if (strcmp(argv[1], "--version") == 0) {
+            print_version();
             return 0;
         }
         // for unrecognized long options

@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,6 +21,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#define PROGRAM_NAME "nproc"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
+
 bool showAll = false;
 int ignoreProc = 0;
 
@@ -33,6 +38,7 @@ static struct option long_options[] = {
   {"all", no_argument, 0, 2},
   {"ignore", required_argument, 0, 3},
   {"help", no_argument, 0, 1},
+  {"version", no_argument, 0, 9},
   {0, 0, 0, 0}
 };
 
@@ -40,6 +46,7 @@ static struct help_entry help_entries[] = {
   {"    --all", "print the number of installed processors"},
   {"    --ignore=N", "if possible, exclude N processing units"},
   {"    --help", "display this help and exit"},
+  {"    --version", "output version information and exit"},
   {NULL, NULL}
 };
 
@@ -58,6 +65,16 @@ void print_help(const char *name) {
   }
 }
 
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
+}
+
 int main(int argc, char *argv[]) {
   int np;
   int opt;
@@ -73,27 +90,23 @@ int main(int argc, char *argv[]) {
       case 3:
         ignoreProc = atoi(optarg);
         break;
+      case 9:
+        print_version();
+        return 0;
       case '?':
         printf("Try '%s --help' for more information.\n", argv[0]);
         return 1;
     }
   }
   
-  switch (showAll) {
-    case true:
-      np = sysconf(_SC_NPROCESSORS_CONF);
-      break;
-    case false:
-      np = sysconf(_SC_NPROCESSORS_ONLN);
-      break;
-  }
+  np = (showAll) ? sysconf(_SC_NPROCESSORS_CONF) : sysconf(_SC_NPROCESSORS_ONLN);
 
   if (ignoreProc > 0) {
     int buffer = (ignoreProc < 1) ? 1 : ((ignoreProc > np - 1) ? np - 1 : ignoreProc);
     np -= buffer;
   }
   
-  puts(np);
+  printf("%d", np);
   return 0;
 }
 

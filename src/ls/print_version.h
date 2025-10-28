@@ -14,9 +14,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-#ifndef LONGFORMAT_H
-#define LONGFORMAT_H
+#ifndef PRINTVER_H
+#define PRINTVER_H
 
-void printlongOutput(const char *fullPath, const char *fileName);
+void print_version();
 
 #endif

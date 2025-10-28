@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -27,6 +27,11 @@
 #include <unistd.h>
 #include <utime.h>
 
+#define PROGRAM_NAME "touch"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
+
 struct help_entry {
   char *opt;
   char *desc;
@@ -37,6 +42,7 @@ static struct option long_options[] = {{"no-create", no_argument, 0, 'c'},
                                        {"reference", required_argument, 0, 'r'},
                                        {"time", required_argument, 0, 2},
                                        {"help", no_argument, 0, 1},
+                                       {"version", no_argument, 0, 9},
                                        {0, no_argument, 0, 'a'},
                                        {0, no_argument, 0, 'f'},
                                        {0, no_argument, 0, 'm'},
@@ -59,6 +65,7 @@ static struct help_entry help_entries[] = {
      "                   WORD is access, atime, or use: equivalent to -a"
      "                   WORD is modify or mtime: equivalent to -m"},
     {"    --help", "display this help and exit"},
+    {"    --version", "output version information and exit"},
     {0, 0}};
 
 void print_help(const char *name) {
@@ -93,6 +100,16 @@ void print_help(const char *name) {
         "contents.\n"
         "  cat        Copy standard input to standard output.\n",
         stdout);
+}
+
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
 }
 
 #define CHANGE_ATIME (1 << 0)
@@ -329,6 +346,9 @@ int main(int argc, char *argv[]) {
       }
     case 1:
       print_help(argv[0]);
+      return 0;
+    case 9:
+      print_version();
       return 0;
     case '?':
       fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
