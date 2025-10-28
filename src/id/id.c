@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -26,6 +26,11 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#define PROGRAM_NAME "groups"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
 
 #define BUF_SIZE 1025
 
@@ -49,12 +54,17 @@ struct help_entry {
   const char *desc;
 };
 
-static struct option long_options[] = {
-    {"context", no_argument, 0, 'Z'}, {"group", no_argument, 0, 'g'},
-    {"groups", no_argument, 0, 'G'},  {"name", no_argument, 0, 'n'},
-    {"real", no_argument, 0, 'r'},    {"user", no_argument, 0, 'u'},
-    {"zero", no_argument, 0, 'z'},    {"help", no_argument, 0, 1},
-    {0, no_argument, 0, 'a'},         {0, 0, 0, 0}};
+static struct option long_options[] = {{"context", no_argument, 0, 'Z'},
+                                       {"group", no_argument, 0, 'g'},
+                                       {"groups", no_argument, 0, 'G'},
+                                       {"name", no_argument, 0, 'n'},
+                                       {"real", no_argument, 0, 'r'},
+                                       {"user", no_argument, 0, 'u'},
+                                       {"zero", no_argument, 0, 'z'},
+                                       {"help", no_argument, 0, 1},
+                                       {"version", no_argument, 0, 2},
+                                       {0, no_argument, 0, 'a'},
+                                       {0, 0, 0, 0}};
 
 static struct help_entry help_entries[] = {
     {"-a", "ignore, for compatibility with other versions"},
@@ -67,6 +77,7 @@ static struct help_entry help_entries[] = {
     {"-z, --zero", "delimit entries with NUL characters, not whitespace;\n"
                    "                  not permitted in default format"},
     {"    --help", "display this help and exit"},
+    {"    --version", "output version information and exit"},
     {NULL, NULL}};
 
 void print_help(const char *name) {
@@ -88,6 +99,16 @@ void print_help(const char *name) {
   }
   puts(
       "\nWithout any OPTION, print some useful set of identified information.");
+}
+
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
 }
 
 int check_mutex(unsigned int flags, unsigned int mask) {
@@ -265,7 +286,7 @@ int print_id(unsigned int flags, char *user) {
           if (pw == NULL) {
             if (errno == 0 || errno == ENOENT || errno == ESRCH ||
                 errno == EBADF || errno == EPERM) {
-              fprintf(stderr, "id: '%s': no such user\n", user);
+              fprintf(stderr, "id: '%s': no such user\n", ptr->pw_name);
               exit(EXIT_FAILURE);
             } else
               return 1;
@@ -276,7 +297,7 @@ int print_id(unsigned int flags, char *user) {
 
     username = pw->pw_name;
 
-    gids = (gid_t *)malloc(10 * sizeof(gid_t));
+    gids = (gid_t *)malloc(ngroups * sizeof(gid_t));
     if (gids == NULL)
       return 1;
 
@@ -284,7 +305,7 @@ int print_id(unsigned int flags, char *user) {
 
     if (ret == -1) {
       free(gids);
-      gids = (gid_t *)malloc(ngroups * sizeof(gid_t));
+      gids = (gid_t *)malloc((ngroups * 2) * sizeof(gid_t));
       if (gids == NULL) {
         return 1;
       }
@@ -445,6 +466,9 @@ int main(int argc, char *argv[]) {
       break;
     case 1:
       print_help(argv[0]);
+      return 0;
+    case 2:
+      print_version();
       return 0;
     case '?':
       fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);

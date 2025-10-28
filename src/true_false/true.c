@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,14 +17,25 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <getopt.h>
+
+#define PROGRAM_NAME "false"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
 
 struct help_entry {
   const char *opt;
   const char *desc;
 };
 
+static struct option long_options[] = {{"help", no_argument, 0, 1},
+{"version", no_argument, 0, 2},
+{NULL, 0, 0, 0}};
+
 static struct help_entry help_entries[] = {
   {"    --help", "display this help and exit"},
+  {"    --version", "output version information and exit"},
   {NULL, NULL}
 };
 
@@ -44,9 +55,31 @@ void print_help(const char *name) {
   }
 }
 
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
+}
+
 int main(int argc __attribute__((unused)), char *argv[]) {
-  if (argv[1] != NULL)
-    if (strcasecmp(argv[1], "--help") == 0)
-      print_help(argv[0]);  
+  int opt;
+  while ((opt = getopt_long(argc, argv, "", long_options, 0)) != -1) {
+    switch (opt) {
+      case 1:
+        print_help(argv[0]);
+        return 0;
+      case 2:
+        print_version();
+        return 0;
+      case '?':
+        fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+        return 1;
+    }
+  }
+
   return 0;
 }

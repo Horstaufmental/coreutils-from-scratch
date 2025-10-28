@@ -14,9 +14,17 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-#ifndef LONGFORMAT_H
-#define LONGFORMAT_H
+#include <stdio.h>
 
-void printlongOutput(const char *fullPath, const char *fileName);
+#include "print_version.h"
+#include "args.h"
 
-#endif
+void print_version() {
+    printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+    printf("Copyright (C) 2025 %s\n", AUTHORS);
+    puts("License GPLv3+: GNU GPL version 3 or later "
+    "<https://gnu.org/licenses/gpl.html>.\n"
+    "This is free software: you are free to change and redistribute it.\n"
+    "There is NO WARRANTY, to the extent permitted by law.\n");
+    printf("Written by %s\n", AUTHORS);
+}

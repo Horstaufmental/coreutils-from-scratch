@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,6 +24,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#define PROGRAM_NAME "kill"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
+
 struct help_entry {
   char *opt;
   char *desc;
@@ -36,6 +41,7 @@ struct option long_options[] = {{"signal", required_argument, 0, 's'},
                                 {"list", no_argument, 0, 'l'},
                                 {"table", no_argument, 0, 't'},
                                 {"help", no_argument, 0, 1},
+                                {"version", no_argument, 0, 2},
                                 {0, 0, 0, 0}};
 
 static struct help_entry help_entries[] = {
@@ -46,7 +52,8 @@ static struct help_entry help_entries[] = {
      "list signal names, or convert signal names to/from numbers"},
     {"-t, --table", "print a table of signal information"},
     {"    --help", "display this help and exit"},
-    {0, 0}};
+    {"    --version", "output this information and exit"},
+    {NULL, NULL}};
 
 void print_help(const char *name) {
   printf("Usage: %s [-s SIGNAL | -SIGNAL] PID...\n"
@@ -74,6 +81,16 @@ void print_help(const char *name) {
        "signal number like '1',\n"
        "or the exit status of a process terminated by a signal.\n"
        "PID is an integer; if negative it identifies a process group.");
+}
+
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
 }
 
 struct signalLists {
@@ -372,6 +389,9 @@ int main(int argc, char *argv[]) {
       break;
     case 1:
       print_help(argv[0]);
+      return 0;
+    case 2:
+      print_version();
       return 0;
     }
   }

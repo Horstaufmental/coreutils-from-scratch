@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,6 +25,11 @@
 #include <errno.h>
 #include <stdbool.h>
 
+#define PROGRAM_NAME "cat"
+#define PROJECT_NAME "coreutils from scratch"
+#define AUTHORS "Horstaufmental"
+#define VERSION "1.1 (Okami Era)"
+
 #define BUFSIZE 32768 // GNU Coreutils's buffer size for files
 
 struct help_entry {
@@ -41,6 +46,7 @@ static struct option long_options[] = {
     {"show-tabs", no_argument, 0, 'T'},
     {"show-nonprinting", no_argument, 0, 'v'},
     {"help", no_argument, 0, 1},
+    {"version", no_argument, 0, 2},
     {0, no_argument, 0, 'e'}, // -vET
     {0, no_argument, 0, 't'}, // -vT
     {0, no_argument, 0, 'u'}, // ignored
@@ -57,7 +63,10 @@ static struct help_entry help_entries[] = {
     {"-T, --show-tabs", "display TAB characterr as ^I"},
     {"-u", "(ignored) historically means 'unbuffered output', now obsolete"},
     {"-v, --show-nonprinting", "use ^ and M- notation, except for LFD and TAB"},
-    {"    --help", "display this help and exit"}};
+    {"    --help", "display this help and exit"},
+    {"    --version", "output version information and exit"},
+    {NULL, NULL}
+};
 
 void print_help(const char *name) {
   printf("Usage: %s [OPTION]... [FILE]...\n", name);
@@ -82,6 +91,16 @@ void print_help(const char *name) {
         "contents.\n"
         "  cat        Copy standard input to standard output.\n",
         stdout);
+}
+
+void print_version() {
+  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
+  printf("Copyright (C) 2025 %s\n", AUTHORS);
+  puts("License GPLv3+: GNU GPL version 3 or later "
+  "<https://gnu.org/licenses/gpl.html>.\n"
+  "This is free software: you are free to change and redistribute it.\n"
+  "There is NO WARRANTY, to the extent permitted by law.\n");
+  printf("Written by %s\n", AUTHORS);
 }
 
 static unsigned long long line_number = 1;

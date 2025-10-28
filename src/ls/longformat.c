@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -142,12 +142,12 @@ void printlongOutput(const char *fullPath, const char *fileName)
     char timeString[20];
     strftime(timeString, sizeof(timeString), "%b %d %H:%M", modTime);
     // print all info
-    if (humanReadable)
+    if (humanReadable) // for some reason, on x86_64 hosts and ARM64 hosts, nlink_t are either an unsigned long (former) or unsigned int (latter)
     {
         char buffer[50];
         byteToHR(fileSize, buffer, sizeof(buffer));
-        printf("%c%s %u %s %s %s %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, buffer, timeString, fileName);
+        printf("%c%s %lu %s %s %s %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, buffer, timeString, fileName);
         return;
     }
-    printf("%c%s %u %s %s %li %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, fileSize, timeString, fileName);
+    printf("%c%s %lu %s %s %li %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, fileSize, timeString, fileName);
 }

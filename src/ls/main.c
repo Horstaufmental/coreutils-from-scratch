@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -25,13 +25,13 @@
 #include <string.h>
 #include <sys/statfs.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
 
 #include "args.h"
 #include "longformat.c"
 #include "print_help.c"
+#include "print_version.c"
 
 bool includeALL = false;
 bool includeALLshort = false;
@@ -66,6 +66,9 @@ int main(int argc, char *argv[]) {
       break;
     case 1:
       print_help(argv[0]);
+      return 0;
+    case 2:
+      print_version();
       return 0;
     default:
       print_help(argv[0]);

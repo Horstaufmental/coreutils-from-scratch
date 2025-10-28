@@ -7,7 +7,7 @@
  * coreutils from scratch is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * any later version.
  *
  * coreutils from scratch is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,6 +16,8 @@
  */
 #ifndef PRINTHELP_H
 #define PRINTHELP_H
+
+#include <stdlib.h>
 
 struct help_entry
 {
@@ -29,7 +31,10 @@ static struct help_entry help_entries[] = {
     {"-A, --almost-all", "equivalent to --all; included for compatibility with `ls -A`"},
     {"-h, --human-readable", "with -l, print sizes in human readable format (e.g., 1K 234M 2G)"},
     {"-l", "display extended file metadata as a table"},
-    {"--help", "display this help and exit"}};
+    {"    --help", "display this help and exit"},
+    {"    --version", "output version information and exit"},
+    {NULL, NULL}
+};
 
 void print_help(const char *name);
 
