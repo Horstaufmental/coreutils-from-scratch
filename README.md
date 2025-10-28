@@ -36,7 +36,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently 25 has been made**
+> **Total of 100 programs: currently 26 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -114,7 +114,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [x] hostid
 - [x] id
 - [x] kill
-- [ ] link
+- [x] link
 - [x] logname
 - [ ] nice
 - [ ] nohup
