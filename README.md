@@ -146,7 +146,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 
 originally this project is licensed under the **MIT License**, but starting from version 1.0 (aka Okami Era), is now licensed under the **GNU General Public License v3.0 (GPLv3).**
 
-(all versions without versions prior to this change are not considered part of the new GPLv3-licensed releases)
+(all versions without versions/file headers prior to this change are not considered part of the new GPLv3-licensed releases)
 
 you are free to:
 
