@@ -36,7 +36,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently only 21 has been made**
+> **Total of 100 programs: currently 22 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -110,7 +110,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [ ] expr
 - [ ] factor
 - [x] false
-- [ ] groups
+- [x] groups
 - [ ] hostid
 - [x] id
 - [x] kill
@@ -144,7 +144,9 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 
 ## License
 
-originally this project is licensed under the **MIT License**, but starting from `10/26/2025` (now formally known as the Okami Era), is now licensed under the **GNU General Public License v3.0 (GPLv3).**
+originally this project is licensed under the **MIT License**, but starting from version 1.0 (aka Okami Era), is now licensed under the **GNU General Public License v3.0 (GPLv3).**
+
+(all versions without versions prior to this change are not considered part of the new GPLv3-licensed releases)
 
 you are free to:
 
