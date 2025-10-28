@@ -22,7 +22,7 @@
 #define PROGRAM_NAME "hostid"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#define VERSION "1.0"
 
 struct help_entry {
   const char *opt;
