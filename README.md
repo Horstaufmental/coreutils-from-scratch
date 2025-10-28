@@ -36,7 +36,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently 22 has been made**
+> **Total of 100 programs: currently 23 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -121,7 +121,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [x] nproc
 - [ ] pathchk
 - [ ] pinky
-- [ ] printenv
+- [x] printenv
 - [ ] printf
 - [x] pwd
 - [ ] readlink
