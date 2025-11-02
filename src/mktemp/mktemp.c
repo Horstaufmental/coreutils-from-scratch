@@ -31,7 +31,7 @@
 #define PROGRAM_NAME "mktemp"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 bool dir = false;
 bool dry_run = false;
@@ -269,10 +269,11 @@ retry_create:
   randomize_prefix_x(template);
 
   char path[4096];
-  snprintf(path, sizeof(path), "%s/%s", tmpdir, template);
 
   if (manual_create)
     goto manual_creation;
+
+   snprintf(path, sizeof(path), "%s/%s", tmpdir, template);
 
   if (dir) {
     if (mkdtemp(path) == NULL) {
@@ -301,13 +302,17 @@ manual_creation:;
   // functions but idc)
   const char *letters =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  size_t len = strlen(path);
+  size_t len = strlen(template);
 
   for (ssize_t i = len - 1; i >= 0; i--) {
-    if (path[i] == 'X') {
-      path[i] = letters[rand() % 62];
+    if (template[i] == 'X') {
+      template[i] = letters[rand() % 62];
     }
   }
+
+  
+  snprintf(path, sizeof(path), "%s/%s", tmpdir, template);
+
 
   if (dir) {
     if (mkdir(path, 0700) != 0) {
