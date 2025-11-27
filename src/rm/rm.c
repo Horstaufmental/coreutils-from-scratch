@@ -160,7 +160,7 @@ int isDirEmpty(const char *path) {
   return (count == 0); // if empty, ret 1 ; if not, ret 0
 }
 
-void writeProtectCheck(const char *fileName, int *isEmpty,
+void writeProtectCheck(const char *fileName, bool *isEmpty,
                        const char *fileType) {
   FILE *fp;
   char buffer[16];
