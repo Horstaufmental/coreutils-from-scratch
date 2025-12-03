@@ -39,14 +39,38 @@ struct wc {
   long lines, words, chars, bytes, maxlen;
 };
 
+void print_to_var(char *buf, char *str, bool comma) {
+  char buffer[4096];
+  buffer[0] = '\0';
+  // printf("buf (1) : |%s\n", buf);
+  // printf("str     : |%s\n", str);
+  snprintf(buffer, sizeof(buffer), "%s", buf ? buf : "");
+  // printf("buffer  : |%s\n", buffer);
+  if (strlen(buffer) == 0) {
+    snprintf(buf, 4096, "%s", str);
+  } else {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+    snprintf(buf, 4096, "%s%s%s", buffer, comma ? "," : " ", str);
+#pragma GCC diagnostic pop
+    // printf("buf (2) : |%s\n\n", buf);
+  }
+
+  if (strlen(buf) >= 4096 - 1) {
+    fprintf(stderr, "warning: print_to_var() output truncated.\n");
+  }
+}
+
 struct wc count_word(char *str) {
   long lines = 0, words = 0, chars = 0;
   bool in_word = true;
 
-  for (size_t i = 0; i < strlen(str); i++) {
+  for (size_t i = 0; i < strlen(str) + 1; i++) {
     chars++;
     if (str[i] == '\n')
       lines++;
+    if (str[i] == '\0')
+      in_word = false;
 
     if (isspace((unsigned char)str[i])) {
       in_word = false;
@@ -81,6 +105,8 @@ struct wc count_word_fd(int fd) {
       chars++;
       if (buf[i] == '\n')
         lines++;
+      if (buf[i] == '\0')
+        in_word = false;
 
       if (isspace((unsigned char)buf[i])) {
         in_word = false;
@@ -103,19 +129,47 @@ struct wc count_word_fd(int fd) {
   return billy;
 }
 
-void print_results(int flags, char *name, struct wc willer) {
-  char buf[256];
-  if (flags & P_LINES)
-    // printf("%6ld", willer.bytes);
-    
-  if (flags & P_WORDS)
-    printf("%7ld", willer.words);
-  if (flags & P_CHARS)
-    printf("%7ld", willer.chars);
-  if (flags & P_BYTES)
-    printf("%7ld", willer.bytes);
-  if (flags & P_LENMX)
-    printf("%7ld", willer.maxlen);
+void print_array(char *buf, char *str, long willer, bool comma) {
+  snprintf(str, sizeof(str) - strlen(str), " %ld", willer);
+  print_to_var(buf, str, comma);
+}
+
+// why do wc from stdin and file formats differently wtf!!
+void print_results(int flags, char *name, struct wc willer, bool from_stdin) {
+  char buf[512] = "\0";
+  char str[256] = "\0";
+  if (flags & P_LINES) {
+    if (!from_stdin)
+      print_array(buf, str, willer.lines, false);
+    else
+      printf("%6ld", willer.lines);
+  }
+  if (flags & P_WORDS) {
+    if (!from_stdin)
+      print_array(buf, str, willer.words, false);
+    else
+      printf("%6ld", willer.words);
+  }
+  if (flags & P_CHARS) {
+    if (!from_stdin)
+      print_array(buf, str, willer.chars, false);
+    else
+      printf("%6ld", willer.words);
+  }
+  if (flags & P_BYTES) {
+    if (!from_stdin)
+      print_array(buf, str, willer.bytes, false);
+    else
+      printf("%6ld", willer.bytes);
+  }
+  if (flags & P_LENMX) {
+    if (!from_stdin)
+      print_array(buf, str, willer.maxlen, false);
+    else
+      printf("%6ld", willer.maxlen);
+  }
+  if (!from_stdin)
+    fputs(buf, stdout);
 
   if (name == NULL)
     fputs("\n", stdout);
@@ -134,28 +188,6 @@ void process_the_fucking_struct(char *buf, int fd, struct wc williams[],
   if ((long unsigned int)*count < sizeof(*williams)) {
     williams[*count] = willer;
     (*count)++;
-  }
-}
-
-void print_to_var(char *buf, char *str, bool comma) {
-  char buffer[4096];
-  buffer[0] = '\0';
-  // printf("buf (1) : |%s\n", buf);
-  // printf("str     : |%s\n", str);
-  snprintf(buffer, sizeof(buffer), "%s", buf ? buf : "");
-  // printf("buffer  : |%s\n", buffer);
-  if (strlen(buffer) == 0) {
-    snprintf(buf, 4096, "%s", str);
-  } else {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wformat-truncation"
-    snprintf(buf, 4096, "%s%s%s", buffer, comma ? "," : " ", str);
-#pragma GCC diagnostic pop
-    // printf("buf (2) : |%s\n\n", buf);
-  }
-
-  if (strlen(buf) >= 4096 - 1) {
-    fprintf(stderr, "warning: print_to_var() output truncated.\n");
   }
 }
 
@@ -225,8 +257,10 @@ int main(int argc, char *argv[]) {
   struct wc williams[50];
   char names[50][1024];
   int count = 0;
+  bool from_stdin = false;
   if (argc == optind) {
   do_stdin:;
+    from_stdin = true;
     char buf[4096];
     while (true) {
       fgets(buf, sizeof(buf), stdin);
@@ -251,9 +285,9 @@ int main(int argc, char *argv[]) {
   }
 
   if (count == 1) {
-    print_results(flags, NULL, williams[0]);
+    print_results(flags, names[0], williams[0], from_stdin);
     if (flags & T_ALWY)
-      print_results(flags, "total", williams[0]); // :troll:
+      print_results(flags, "total", williams[0], from_stdin); // :troll:
   } else if (count > 1) {
     struct wc final;
     for (int i = 0; i < count; i++) {
@@ -285,14 +319,14 @@ int main(int argc, char *argv[]) {
       snprintf(int2string, sizeof(int2string), "%ld", final.words);
       print_to_var(to_print, int2string, false);
     }
-    
+
     if (flags & T_ONLY) {
       puts(to_print);
       return 0;
     }
 
     for (int i = 0; i < count; i++) {
-      print_results(flags, names[i], williams[i]);
+      print_results(flags, names[i], williams[i], from_stdin);
     }
     if ((flags & T_AUTO || flags & T_ALWY) && !(flags & T_NEVR)) {
       printf("%s total\n", to_print);
