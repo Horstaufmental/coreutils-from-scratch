@@ -1,26 +1,34 @@
-#include <ctype.h>
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <locale.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wchar.h>
+#include <wctype.h>
+#include <ctype.h>
 
 #define P_BYTES (1 << 0)
 #define P_CHARS (1 << 1)
 #define P_LINES (1 << 2)
 #define P_LENMX (1 << 3)
 #define P_WORDS (1 << 4)
+#define P_DEFAULT (1 << 5)
 
-#define T_AUTO (1 << 5)
-#define T_ALWY (1 << 6)
-#define T_ONLY (1 << 7)
-#define T_NEVR (1 << 8)
+#define T_AUTO (1 << 0)
+#define T_ALWY (1 << 1)
+#define T_ONLY (1 << 2)
+#define T_NEVR (1 << 3)
 
-struct help_entry {
+struct help_entry
+{
   const char *opt;
   const char *desc;
 };
@@ -35,9 +43,18 @@ static struct option long_options[] = {{"bytes", no_argument, 0, 'c'},
                                        {"help", no_argument, 0, 1},
                                        {"version", no_argument, 0, 2}};
 
-struct wc {
-  long lines, words, chars, bytes, maxlen;
+struct wc
+{
+  size_t lines, words, chars, bytes, maxlen;
 };
+
+/*
+print_to_var() IS NOT SAFE FOR CONCATENATING RAW INPUT
+Do NOT use print_to_var() for input. Ever.
+
+- ChatGPT, 2025
+
+it's weird and quirky i know, and im keeping this as a relic of my stupidity
 
 void print_to_var(char *buf, char *str, bool comma) {
   char buffer[4096];
@@ -60,143 +77,271 @@ void print_to_var(char *buf, char *str, bool comma) {
     fprintf(stderr, "warning: print_to_var() output truncated.\n");
   }
 }
+*/
 
-struct wc count_word(char *str) {
-  long lines = 0, words = 0, chars = 0;
-  bool in_word = true;
+struct wc count_word_fd(int fd, bool need_chars_or_maxlen)
+{
+  const size_t BUF_SZ = 65536;
+  unsigned char buf[65536];
 
-  for (size_t i = 0; i < strlen(str) + 1; i++) {
-    chars++;
-    if (str[i] == '\n')
-      lines++;
-    if (str[i] == '\0')
-      in_word = false;
+  ssize_t r; // renamed for better readability, for my future self
+  long bytesread = 0;
+  size_t lines = 0, words = 0, chars = 0, maxlen = 0, curlen = 0;
+  mbstate_t ps;
+  memset(&ps, 0, sizeof(ps));
+  bool in_word = false;
 
-    if (isspace((unsigned char)str[i])) {
-      in_word = false;
-    } else {
-      if (!in_word) {
-        words++;
-        in_word = true;
+  while ((r = read(fd, buf, sizeof(BUF_SZ))) > 0)
+  {
+    bytesread += r;
+
+    bool all_ascii = true;
+    for (size_t i = 0; i < (size_t)r; i++)
+    {
+      if (buf[i] & 0x80) // check if any byte is non-ASCII
+      {
+        all_ascii = false;
+        break;
       }
     }
-  }
 
-  struct wc willy; // we'll just call him that idk
-  willy.lines = lines;
-  willy.words = words;
-  willy.chars = chars;
-  willy.bytes = strlen(str);
-  // TODO: maxlen
-  willy.maxlen = 0;
-  return willy;
-}
+    if (all_ascii && MB_CUR_MAX == 1)
+    {
+      for (size_t i = 0; i < (size_t)r; ++i)
+      {
+        unsigned char c = buf[i];
+        if (c == '\n')
+        {
+          lines++;
+          if (curlen > maxlen)
+            maxlen = curlen;
+          curlen = 0;
+        }
+        else
+        {
+          curlen++;
+        }
 
-struct wc count_word_fd(int fd) {
-  char buf[1024];
-  ssize_t bytes;
-  int bytesread;
-  long lines = 0, words = 0, chars = 0;
-  bool in_word = true;
-
-  while ((bytes = read(fd, buf, sizeof(buf))) > 0) {
-    for (ssize_t i = 0; i < bytes; i++) {
-      bytesread += bytes;
-      chars++;
-      if (buf[i] == '\n')
-        lines++;
-      if (buf[i] == '\0')
-        in_word = false;
-
-      if (isspace((unsigned char)buf[i])) {
-        in_word = false;
-      } else {
-        if (!in_word) {
-          words++;
-          in_word = true;
+        if (c <= ' ' || iswspace(c))
+        {
+          in_word = false;
+        }
+        else
+        {
+          if (!in_word)
+          {
+            words++;
+            in_word = true;
+          }
         }
       }
+      continue;
+    }
+    else
+    {
+
+      size_t i = 0;
+
+      // utf-8 decoder; increment i by seq_len
+      // TODO: use mbrtowc instead for better correctness
+      while (i < (size_t)r)
+      {
+        uint32_t c = buf[i];
+
+        int len;
+        if (c < 0x80)
+        {
+          // ASCII character
+          len = 1;
+        }
+        else if ((c & 0xE0) == 0xC0 && i + 1 < r)
+        {
+          len = 2;
+          c = ((c & 0x1F) << 6) | (buf[i + 1] & 0x3F);
+        }
+        else if ((c & 0xF0) == 0xE0 && i + 2 < r)
+        {
+          len = 3;
+          c = ((c & 0x0F) << 12) | ((buf[i + 1] & 0x3F) << 6) | (buf[i + 2] & 0x3F);
+        }
+        else if ((c & 0xF8) == 0xF0 && i + 3 < r)
+        {
+          len = 4;
+          c = ((c & 0x07) << 18) | ((buf[i + 1] & 0x3F) << 12) | ((buf[i + 2] & 0x3F) << 6) | (buf[i + 3] & 0x3F);
+        }
+        else
+        {
+          // invalid utf-8, treat as a single byte
+          len = 1;
+          c = '?';
+        }
+
+        chars++;
+        if (c == '\n')
+        {
+          lines++;
+          if (curlen > maxlen)
+            maxlen = curlen;
+          curlen = 0;
+        }
+        else
+        {
+          curlen++;
+        }
+
+        if (c <= 0x7F && c <= ' ')
+        {
+          in_word = false;
+        }
+        else
+        {
+          if (!in_word)
+          {
+            words++;
+            in_word = true;
+          }
+        }
+
+        i += len;
+      }
     }
   }
+
+  if (curlen > maxlen)
+    maxlen = curlen;
 
   struct wc billy; // willy's twin brother
   billy.lines = lines;
   billy.words = words;
   billy.chars = chars;
   billy.bytes = bytesread;
-  // TODO: maxlen
-  billy.maxlen = 0;
+  billy.maxlen = maxlen;
   return billy;
 }
 
-void print_array(char *buf, char *str, long willer, bool comma) {
-  snprintf(str, sizeof(str) - strlen(str), " %ld", willer);
-  print_to_var(buf, str, comma);
-}
-
 // why do wc from stdin and file formats differently wtf!!
-void print_results(int flags, char *name, struct wc willer, bool from_stdin) {
-  char buf[512] = "\0";
-  char str[256] = "\0";
-  if (flags & P_LINES) {
-    if (!from_stdin)
-      print_array(buf, str, willer.lines, false);
-    else
-      printf("%6ld", willer.lines);
-  }
-  if (flags & P_WORDS) {
-    if (!from_stdin)
-      print_array(buf, str, willer.words, false);
-    else
-      printf("%6ld", willer.words);
-  }
-  if (flags & P_CHARS) {
-    if (!from_stdin)
-      print_array(buf, str, willer.chars, false);
-    else
-      printf("%6ld", willer.words);
-  }
-  if (flags & P_BYTES) {
-    if (!from_stdin)
-      print_array(buf, str, willer.bytes, false);
-    else
-      printf("%6ld", willer.bytes);
-  }
-  if (flags & P_LENMX) {
-    if (!from_stdin)
-      print_array(buf, str, willer.maxlen, false);
-    else
-      printf("%6ld", willer.maxlen);
-  }
-  if (!from_stdin)
-    fputs(buf, stdout);
+void print_results(uint8_t flags, char *name, struct wc willer, bool from_stdin)
+{
+  bool first_print = true;
 
-  if (name == NULL)
-    fputs("\n", stdout);
-  else
+  if (flags & P_DEFAULT)
+  {
+    printf("%6ld %7ld %7ld", willer.lines, willer.words, willer.bytes);
+  }
+  if (flags & P_LINES)
+  {
+    if (!from_stdin)
+      if (!first_print)
+      {
+        printf("%ld", willer.lines);
+        first_print = false;
+      }
+      else
+      {
+        printf(" %ld", willer.lines);
+      }
+    else
+      printf("%ld ", willer.lines);
+  }
+  if (flags & P_WORDS)
+  {
+    if (!from_stdin)
+      if (!first_print)
+      {
+        printf("%ld", willer.words);
+        first_print = false;
+      }
+      else
+      {
+        printf(" %ld", willer.words);
+      }
+    else
+      printf("%6ld ", willer.words);
+  }
+  if (flags & P_CHARS)
+  {
+    if (!from_stdin)
+      if (!first_print)
+      {
+        printf("%ld", willer.chars);
+        first_print = false;
+      }
+      else
+      {
+        printf(" %ld", willer.chars);
+      }
+    else
+      printf("%6ld ", willer.chars);
+  }
+  if (flags & P_BYTES)
+  {
+    if (!from_stdin)
+      if (!first_print)
+      {
+        printf("%ld", willer.bytes);
+        first_print = false;
+      }
+      else
+      {
+        printf(" %ld", willer.bytes);
+      }
+    else
+      printf("%6ld ", willer.bytes);
+  }
+  if (flags & P_LENMX)
+  {
+    if (!from_stdin)
+      if (!first_print)
+      {
+        printf("%ld", willer.maxlen);
+        first_print = false;
+      }
+      else
+      {
+        printf(" %ld", willer.maxlen);
+      }
+    else
+      printf("%6ld ", willer.maxlen);
+  }
+
+  if (!from_stdin && name != NULL && name[0] != '\0')
+  {
     printf(" %s\n", name);
+  }
+  else
+  {
+    printf("\n");
+  }
 }
 
-void process_the_fucking_struct(char *buf, int fd, struct wc williams[],
-                                int *count) {
+// great creativity! such a manificient name! what an unbelievable thinking behind
+// naming this function! /s
+void process_the_fucking_struct(int fd, struct wc williams[], int length, int *count, uint8_t flags)
+{
   struct wc willer;
-  if (buf != NULL)
-    willer = count_word(buf);
-  else
-    willer = count_word_fd(fd);
+  willer = count_word_fd(fd, ((flags & P_CHARS) || (flags & P_LENMX)) ? true : false);
 
-  if ((long unsigned int)*count < sizeof(*williams)) {
+  if (*count < length)
+  {
     williams[*count] = willer;
     (*count)++;
   }
 }
 
-int main(int argc, char *argv[]) {
-  int flags = 0;
-  int when = 0;
+int main(int argc, char *argv[])
+{
+  // set to user's locale
+  setlocale(LC_CTYPE, "");
+
+  // i dont trust gcc.. at all...
+  uint8_t flags = 0;
+  uint8_t when = 0;
+
   int opt;
-  while ((opt = getopt_long(argc, argv, "cmlL", long_options, NULL)) != -1) {
-    switch (opt) {
+  while ((opt = getopt_long(argc, argv, "cmlLw", long_options, NULL)) != -1)
+  {
+    switch (opt)
+    {
     case 'c':
       flags |= P_BYTES;
       break;
@@ -212,16 +357,26 @@ int main(int argc, char *argv[]) {
     case 'w':
       flags |= P_WORDS;
       break;
-    case 3:
-      if (strncasecmp(optarg, "auto", strlen(optarg)) == 0) {
+    case 3:;
+      size_t optarg_len = strlen(optarg);
+      if (strncasecmp(optarg, "auto", optarg_len) == 0)
+      {
         when |= T_AUTO;
-      } else if (strncasecmp(optarg, "always", strlen(optarg)) == 0) {
+      }
+      else if (strncasecmp(optarg, "always", optarg_len) == 0)
+      {
         when |= T_ALWY;
-      } else if (strncasecmp(optarg, "only", strlen(optarg)) == 0) {
+      }
+      else if (strncasecmp(optarg, "only", optarg_len) == 0)
+      {
         when |= T_ONLY;
-      } else if (strncasecmp(optarg, "never", strlen(optarg)) == 0) {
+      }
+      else if (strncasecmp(optarg, "never", optarg_len) == 0)
+      {
         when |= T_NEVR;
-      } else {
+      }
+      else
+      {
         fprintf(stderr,
                 "%s: invalid argument '%s' for '--total'\n"
                 "Valid arguments are:\n"
@@ -247,10 +402,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (flags == 0) {
-    flags = P_WORDS | P_LINES | P_BYTES;
+  if (flags == 0)
+  {
+    flags = P_DEFAULT;
   }
-  if (when == 0) {
+  if (when == 0)
+  {
     when = T_AUTO;
   }
 
@@ -258,78 +415,98 @@ int main(int argc, char *argv[]) {
   char names[50][1024];
   int count = 0;
   bool from_stdin = false;
-  if (argc == optind) {
+  if (argc == optind)
+  {
   do_stdin:;
     from_stdin = true;
-    char buf[4096];
-    while (true) {
-      fgets(buf, sizeof(buf), stdin);
-      if (feof(stdin))
-        break;
-    }
-    strncpy(names[count], buf, sizeof(names[count]));
-    process_the_fucking_struct(buf, 0, williams, &count);
-  } else {
-    if (strncmp(argv[optind], "-", strlen(argv[optind])) == 0)
+    process_the_fucking_struct(STDIN_FILENO, williams, sizeof(williams) / sizeof(williams[0]), &count, flags);
+    strcpy(names[count - 1], "");
+  }
+  else
+  {
+    if (argv[optind][0] == '-')
       goto do_stdin;
-    for (; optind < argc; optind++) {
-      int fd = open(argv[optind], O_RDONLY);
-      if (fd == -1) {
+    else if (argv[optind][0] == '\0')
+    {
+      fprintf(stderr, "wc: invalid zero-length file name\n");
+      return 1;
+    }
+    for (; optind < argc; optind++)
+    {
+      int fd = open(argv[optind], O_RDONLY | O_CLOEXEC);
+      if (fd == -1)
+      {
         fprintf(stderr, "%s: %s: %s\n", argv[0], argv[optind], strerror(errno));
         return 1;
       }
       strncpy(names[count], argv[optind], sizeof(names[count]));
-      process_the_fucking_struct(NULL, fd, williams, &count);
+      process_the_fucking_struct(fd, williams, sizeof(williams) / sizeof(williams[0]), &count, flags);
       close(fd);
     }
   }
 
-  if (count == 1) {
+  if (count == 1)
+  {
     print_results(flags, names[0], williams[0], from_stdin);
-    if (flags & T_ALWY)
+    if (when & T_ALWY)
       print_results(flags, "total", williams[0], from_stdin); // :troll:
-  } else if (count > 1) {
-    struct wc final;
-    for (int i = 0; i < count; i++) {
+  }
+  else if (count > 1)
+  {
+    struct wc final = {0};
+    size_t previous_len = 0;
+    for (int i = 0; i < count; i++)
+    {
       final.bytes += williams[i].bytes;
       final.chars += williams[i].chars;
       final.lines += williams[i].lines;
-      final.maxlen += williams[i].maxlen;
+      // wouldve done tenary if i didnt have to set the previous len
+      if (williams[i].maxlen > previous_len)
+      {
+        final.maxlen = williams[i].maxlen;
+        previous_len = final.maxlen;
+      }
+      else
+      {
+        final.maxlen = previous_len;
+      }
       final.words += williams[i].words;
     }
-    char to_print[256];
-    char int2string[256];
-    if (flags & P_BYTES) {
-      snprintf(int2string, sizeof(int2string), "%ld", final.bytes);
-      print_to_var(to_print, int2string, false);
-    }
-    if (flags & P_CHARS) {
-      snprintf(int2string, sizeof(int2string), "%ld", final.chars);
-      print_to_var(to_print, int2string, false);
-    }
-    if (flags & P_LINES) {
-      snprintf(int2string, sizeof(int2string), "%ld", final.lines);
-      print_to_var(to_print, int2string, false);
-    }
-    if (flags & P_LENMX) {
-      snprintf(int2string, sizeof(int2string), "%ld", final.maxlen);
-      print_to_var(to_print, int2string, false);
-    }
-    if (flags & P_WORDS) {
-      snprintf(int2string, sizeof(int2string), "%ld", final.words);
-      print_to_var(to_print, int2string, false);
-    }
 
-    if (flags & T_ONLY) {
-      puts(to_print);
+    char totalbuf[256];
+    size_t pos = 0;
+
+    if (flags & P_LINES)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld ", final.lines);
+    if (flags & P_WORDS)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld ", final.words);
+    if (flags & P_CHARS)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld ", final.chars);
+    if (flags & P_BYTES)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld ", final.bytes);
+    if (flags & P_LENMX)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld ", final.maxlen);
+    if (flags & P_DEFAULT)
+      pos += snprintf(totalbuf + pos, sizeof(totalbuf) - pos, "%ld %ld %ld",
+                      final.lines, final.words, final.bytes);
+                  
+    totalbuf[pos] = 0;
+
+    if (when & T_ONLY)
+    {
+      puts(totalbuf);
       return 0;
     }
 
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++)
+    {
       print_results(flags, names[i], williams[i], from_stdin);
     }
-    if ((flags & T_AUTO || flags & T_ALWY) && !(flags & T_NEVR)) {
-      printf("%s total\n", to_print);
+    if (when & T_AUTO || flags & T_ALWY)
+    {
+      printf("%s total\n", totalbuf);
     }
   }
+
+  return 0;
 }
