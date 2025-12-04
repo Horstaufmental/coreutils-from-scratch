@@ -1,3 +1,5 @@
+#include <bits/types/struct_iovec.h>
+#include <sys/mman.h>
 #define _GNU_SOURCE
 
 #include <errno.h>
@@ -12,8 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <wchar.h>
-#include <wctype.h>
-#include <ctype.h>
+#include <sys/stat.h>
 
 #define P_BYTES (1 << 0)
 #define P_CHARS (1 << 1)
@@ -79,136 +80,73 @@ void print_to_var(char *buf, char *str, bool comma) {
 }
 */
 
-struct wc count_word_fd(int fd, bool need_chars_or_maxlen)
+struct wc count_word_fd(int fd)
 {
-  const size_t BUF_SZ = 65536;
-  unsigned char buf[65536];
+  const size_t BUF_SZ = 524288;
+  unsigned char *buf = malloc(BUF_SZ);
+  if (!buf) {
+    fprintf(stderr, "wc: %s\n", strerror(errno));
+    exit(1);
+  }
 
   ssize_t r; // renamed for better readability, for my future self
-  long bytesread = 0;
+  size_t bytesread = 0;
   size_t lines = 0, words = 0, chars = 0, maxlen = 0, curlen = 0;
-  mbstate_t ps;
-  memset(&ps, 0, sizeof(ps));
   bool in_word = false;
 
   while ((r = read(fd, buf, sizeof(BUF_SZ))) > 0)
   {
     bytesread += r;
 
-    bool all_ascii = true;
-    for (size_t i = 0; i < (size_t)r; i++)
-    {
-      if (buf[i] & 0x80) // check if any byte is non-ASCII
-      {
-        all_ascii = false;
-        break;
-      }
-    }
+    // single pass processing
+    for (size_t i = 0; i < (size_t)r; ) {
+      unsigned char c = buf[i];
 
-    if (all_ascii && MB_CUR_MAX == 1)
-    {
-      for (size_t i = 0; i < (size_t)r; ++i)
-      {
-        unsigned char c = buf[i];
-        if (c == '\n')
-        {
+      if (c < 0x80) {
+        chars++;
+        i++;
+
+        // ascii lane
+        if (c == '\n') {
           lines++;
-          if (curlen > maxlen)
-            maxlen = curlen;
+          if (curlen > maxlen) maxlen = curlen;
           curlen = 0;
-        }
-        else
-        {
+          in_word = true;
+        } else {
           curlen++;
-        }
-
-        if (c <= ' ' || iswspace(c))
-        {
-          in_word = false;
-        }
-        else
-        {
-          if (!in_word)
-          {
+          if (c <= ' ')
+            in_word = false;
+          else if (!in_word) {
             words++;
             in_word = true;
           }
         }
-      }
-      continue;
-    }
-    else
-    {
+      } else { // utf-8 lane
+        int len = 1;
+        if ((c & 0xE0) == 0xC0) len = 2;
+        else if ((c & 0xF0) == 0xE0) len = 3;
+        else if ((c & 0xF8) == 0xF0) len = 4;
 
-      size_t i = 0;
-
-      // utf-8 decoder; increment i by seq_len
-      // TODO: use mbrtowc instead for better correctness
-      while (i < (size_t)r)
-      {
-        uint32_t c = buf[i];
-
-        int len;
-        if (c < 0x80)
-        {
-          // ASCII character
+        if (i + len > (size_t)r) {
           len = 1;
-        }
-        else if ((c & 0xE0) == 0xC0 && i + 1 < r)
-        {
-          len = 2;
-          c = ((c & 0x1F) << 6) | (buf[i + 1] & 0x3F);
-        }
-        else if ((c & 0xF0) == 0xE0 && i + 2 < r)
-        {
-          len = 3;
-          c = ((c & 0x0F) << 12) | ((buf[i + 1] & 0x3F) << 6) | (buf[i + 2] & 0x3F);
-        }
-        else if ((c & 0xF8) == 0xF0 && i + 3 < r)
-        {
-          len = 4;
-          c = ((c & 0x07) << 18) | ((buf[i + 1] & 0x3F) << 12) | ((buf[i + 2] & 0x3F) << 6) | (buf[i + 3] & 0x3F);
-        }
-        else
-        {
-          // invalid utf-8, treat as a single byte
-          len = 1;
-          c = '?';
         }
 
         chars++;
-        if (c == '\n')
-        {
-          lines++;
-          if (curlen > maxlen)
-            maxlen = curlen;
-          curlen = 0;
-        }
-        else
-        {
-          curlen++;
-        }
-
-        if (c <= 0x7F && c <= ' ')
-        {
-          in_word = false;
-        }
-        else
-        {
-          if (!in_word)
-          {
-            words++;
-            in_word = true;
-          }
-        }
-
+        curlen++;
         i += len;
+
+        if (!in_word) {
+          words++;
+          in_word = true;
+        }
       }
     }
   }
 
   if (curlen > maxlen)
     maxlen = curlen;
+
+  free(buf);
 
   struct wc billy; // willy's twin brother
   billy.lines = lines;
@@ -217,6 +155,89 @@ struct wc count_word_fd(int fd, bool need_chars_or_maxlen)
   billy.bytes = bytesread;
   billy.maxlen = maxlen;
   return billy;
+}
+
+struct wc count_word_mmap(int fd, size_t file_size) {
+  void *data = mmap(NULL, file_size, PROT_READ, MAP_PRIVATE, fd, 0);
+  if (data == MAP_FAILED) {
+    fprintf(stderr, "wc: %s\n", strerror(errno));
+    return count_word_fd(fd);
+  }
+
+  // oh dear kernel...
+  madvise(data, file_size, MADV_SEQUENTIAL);
+
+  unsigned char *buf = (unsigned char *)data;
+  size_t lines = 0, words = 0, chars = 0, maxlen = 0, curlen = 0;
+  bool in_word = false;
+
+  for (size_t i = 0; i < file_size; ) {
+    unsigned char c = buf[i];
+
+    // ascii lane
+    if (c < 0x80) {
+      chars++;
+      i++;
+
+      if (c == '\n') {
+        lines++;
+        if (curlen > maxlen) maxlen = curlen;
+        curlen = 0;
+        in_word = false;
+      } else {
+        curlen++;
+        if (c <= ' ') {
+          in_word = false;
+        } else if (!in_word) {
+          words++;
+          in_word = true;
+        }
+      }
+    } else { // utf8 lane
+      int len = 1;
+      if ((c & 0xE0) == 0xC0) len = 2;
+      else if ((c & 0xF0) == 0xE0) len = 3;
+      else if ((c & 0xF8) == 0xF0) len = 4;
+
+      if (i + len > file_size)
+        len = 1;
+
+      chars++;
+      curlen++;
+      i += len;
+
+      if (!in_word) {
+        words++;
+        in_word = true;
+      }
+    }
+  }
+
+  if (curlen > maxlen) maxlen = curlen;
+
+  munmap(data, file_size);
+
+  struct wc willy;
+  willy.lines = lines;
+  willy.words = words;
+  willy.chars = chars;
+  willy.bytes = file_size;
+  willy.maxlen = maxlen;
+  return willy;
+}
+
+struct wc cw_wrapper(int fd) {
+  struct stat st;
+  if (fstat(fd, &st) == -1) {
+    fprintf(stderr, "wc: %s\n", strerror(errno));
+    return count_word_fd(fd);
+  }
+
+  if (S_ISREG(st.st_mode) && st.st_size > 65536) {
+    return count_word_mmap(fd, st.st_size);
+  } else {
+    return count_word_fd(fd);
+  }
 }
 
 // why do wc from stdin and file formats differently wtf!!
@@ -316,10 +337,10 @@ void print_results(uint8_t flags, char *name, struct wc willer, bool from_stdin)
 
 // great creativity! such a manificient name! what an unbelievable thinking behind
 // naming this function! /s
-void process_the_fucking_struct(int fd, struct wc williams[], int length, int *count, uint8_t flags)
+void process_the_fucking_struct(int fd, struct wc williams[], int length, int *count)
 {
   struct wc willer;
-  willer = count_word_fd(fd, ((flags & P_CHARS) || (flags & P_LENMX)) ? true : false);
+  willer = cw_wrapper(fd);
 
   if (*count < length)
   {
@@ -419,7 +440,7 @@ int main(int argc, char *argv[])
   {
   do_stdin:;
     from_stdin = true;
-    process_the_fucking_struct(STDIN_FILENO, williams, sizeof(williams) / sizeof(williams[0]), &count, flags);
+    process_the_fucking_struct(STDIN_FILENO, williams, sizeof(williams) / sizeof(williams[0]), &count);
     strcpy(names[count - 1], "");
   }
   else
@@ -440,7 +461,7 @@ int main(int argc, char *argv[])
         return 1;
       }
       strncpy(names[count], argv[optind], sizeof(names[count]));
-      process_the_fucking_struct(fd, williams, sizeof(williams) / sizeof(williams[0]), &count, flags);
+      process_the_fucking_struct(fd, williams, sizeof(williams) / sizeof(williams[0]), &count);
       close(fd);
     }
   }
