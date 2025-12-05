@@ -1,4 +1,3 @@
-#include <bits/getopt_core.h>
 #define _GNU_SOURCE
 
 #include <errno.h>
@@ -94,7 +93,8 @@ static inline bool is_word_seperator(wchar_t wc) {
   }
 }
 
-// i am declaring that i wrote the maxlen part correctly and the GNU people didnt (~66 in a 75 million long file is crazy tho)
+// i am declaring that i wrote the maxlen part correctly and the GNU people
+// didnt (~66 in a 75 million long file is crazy tho)
 struct wc count_word_fd(int fd) {
   const size_t BUF_SZ = 524288;
   unsigned char *buf = malloc(BUF_SZ);
@@ -409,6 +409,7 @@ int main(int argc, char *argv[]) {
   uint8_t when = 0;
 
   int files0_from_fd = 0;
+  bool files0_from_stdin = false;
 
   int opt;
   while ((opt = getopt_long(argc, argv, "cmlLw", long_options, NULL)) != -1) {
@@ -452,8 +453,10 @@ int main(int argc, char *argv[]) {
       }
       break;
     case 4:;
-      // im not doing '-', im tired boss..
-      if ((files0_from_fd = open(optarg, O_RDONLY)) == -1) {
+      size_t optarglen = strlen(optarg);
+      if (strncmp(optarg, "-", optarglen) == 0) {
+        files0_from_stdin = true;
+      } else if ((files0_from_fd = open(optarg, O_RDONLY)) == -1) {
         fprintf(stderr, "wc: %s: %s", optarg, strerror(errno));
         return 1;
       }
@@ -480,39 +483,78 @@ int main(int argc, char *argv[]) {
   int count = 0;
   bool from_stdin = false;
 
-  if (files0_from_fd != 0) {
+  if (files0_from_fd != 0 || files0_from_stdin != false) {
     char *list[255];
     char buf[12288];
     ssize_t bytes = 0;
     size_t buf_used = 0;
     size_t name_count = 0;
-    while ((bytes = read(files0_from_fd, buf, sizeof(buf))) > 0) {
-      buf_used += bytes;
-      size_t start = 0;
-      for (size_t i = 0; i < buf_used; i++) {
-        if (buf[i] == '\0') {
-          list[name_count] = strdup(&buf[start]);
-          name_count++;
 
-          start = i + 1;
+    if (files0_from_stdin) {
+      while ((bytes = read(STDIN_FILENO, buf, sizeof(buf))) > 0) {
+        buf_used += bytes;
+        size_t start = 0;
+        for (size_t i = 0; i < buf_used; i++) {
+          if (buf[i] == '\0') {
+            list[name_count] = strdup(&buf[start]);
+            name_count++;
+
+            start = i + 1;
+          }
+        }
+
+        if (start < buf_used) {
+          memmove(buf, buf + start, buf_used - start);
+          buf_used -= start;
+        } else {
+          buf_used = 0;
+        }
+
+        if (bytes == -1) {
+          fprintf(stderr, "wc: %s\n", strerror(errno));
+          return 1;
         }
       }
+    } else {
+      while ((bytes = read(files0_from_fd, buf, sizeof(buf))) > 0) {
+        buf_used += bytes;
+        size_t start = 0;
+        for (size_t i = 0; i < buf_used; i++) {
+          if (buf[i] == '\0') {
+            list[name_count] = strdup(&buf[start]);
+            name_count++;
 
-      if (start < buf_used) {
-        memmove(buf, buf + start, buf_used - start);
-        buf_used -= start;
-      } else {
-        buf_used = 0;
+            start = i + 1;
+          }
+        }
+
+        if (start < buf_used) {
+          memmove(buf, buf + start, buf_used - start);
+          buf_used -= start;
+        } else {
+          buf_used = 0;
+        }
+
+        if (bytes == -1) {
+          fprintf(stderr, "wc: %s\n", strerror(errno));
+          close(files0_from_fd);
+          return 1;
+        }
       }
     }
+    if (!files0_from_stdin)
+      close(files0_from_fd);
 
-    if (bytes == -1) {
-      fprintf(stderr, "wc: %s\n", strerror(errno));
-      return 1;
-    }
-
-    for (int i = 0; i < sizeof(list) / sizeof(list[0]); i++) {
-      // todo
+    for (size_t i = 0; i < sizeof(list) / sizeof(list[0]); i++) {
+      int fd = open(list[i], O_RDONLY | O_CLOEXEC);
+      if (fd == -1) {
+        fprintf(stderr, "%s: %s: %s\n", argv[0], list[i], strerror(errno));
+        close(fd);
+        return 1;
+      }
+      process_the_fucking_struct(
+          fd, williams, sizeof(williams) / sizeof(williams[0]), &count);
+      close(fd);
     }
   } else if (argc == optind) {
   do_stdin:;
