@@ -54,6 +54,8 @@ dkms.conf
 # debug information files
 *.dwo
 
+# IDEs, editors, misc
 .idea/
 .vscode/
 WARP.md
+tests/

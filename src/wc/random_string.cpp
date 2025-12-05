@@ -2,6 +2,7 @@
 #include <fstream>
 #include <random>
 #include <string>
+#include <iostream>
 
 std::string to_utf8(char32_t codepoint) {
   std::string utf8_char;
@@ -62,19 +63,30 @@ std::string generate_random_str(size_t length) {
 }
 
 int main(void) {
-  std::ofstream output("gibberish.txt");
-  std::ofstream output_utf8("gibberish-utf8-ascii-mix.txt");
+  std::ofstream output("tests/ascii.txt");
+  std::ofstream output_utf8("tests/utf8.txt");
+  std::ofstream output_utf8_ascii("tests/utf8-ascii-mix.txt");
 
   if (output.is_open()) {
     output << generate_random_str(150000000) << std::endl;
     output.close();
+    std::cout << "Generated ASCII string of 150 million characters." << std::endl;
   } else {
     return 1;
   }
 
   if (output_utf8.is_open()) {
-    output_utf8 << generate_random_str(75000000) << generate_random_utf8_string(75000000) << std::endl;
+    output_utf8 << generate_random_utf8_string(150000000) << std::endl;
     output_utf8.close();
+    std::cout << "Generated UTF-8 string of 150 million characters." << std::endl;
+  } else {
+    return 1;
+  }
+
+  if (output_utf8_ascii.is_open()) {
+    output_utf8_ascii << generate_random_str(75000000) << generate_random_utf8_string(75000000) << std::endl;
+    output_utf8_ascii.close();
+    std::cout << "Generated UTF-8 and ASCII mixed string of 150 million characters." << std::endl;
   } else {
     return 1;
   }
