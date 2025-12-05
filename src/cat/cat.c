@@ -298,16 +298,12 @@ int read_wrapper(int fd, bool showNonPrinting, bool showTabs,
 
   if (S_ISREG(st.st_mode) && st.st_size > 65536)
   {
-    puts("Using mmap");
-    sleep(1);
     return read_fd_mmap(fd, st.st_size, showNonPrinting, showTabs,
                         squeezeBlank, outputNumber, showEnds,
                         numberNoBlank);
   }
   else
   {
-    puts("Using read");
-    sleep(1);
     return read_fd(fd, showNonPrinting, showTabs,
                    squeezeBlank, outputNumber, showEnds,
                    numberNoBlank);
