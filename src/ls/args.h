@@ -30,13 +30,6 @@ extern bool includeALLshort;
 extern bool longFormat;
 extern bool humanReadable;
 
-static struct option long_options[] = {
-    {"all", no_argument, 0, 'a'},
-    {"almost-all", no_argument, 0, 'A'},
-    {"help", no_argument, 0, 1},
-    {"version", no_argument, 0, 2},
-    {0, no_argument, 0, 'l'},
-    {0, 0, 0, 0}
-};
+extern struct option long_options[];
 
 #endif

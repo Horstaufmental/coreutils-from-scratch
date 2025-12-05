@@ -19,6 +19,7 @@
 #include <dirent.h>
 #include <getopt.h>
 #include <grp.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,9 +30,18 @@
 #include <stdbool.h>
 
 #include "args.h"
-#include "longformat.c"
-#include "print_help.c"
-#include "print_version.c"
+#include "longformat.h"
+#include "print_help.h"
+#include "print_version.h"
+
+struct option long_options[] = {
+    {"all", no_argument, 0, 'a'},
+    {"almost-all", no_argument, 0, 'A'},
+    {"help", no_argument, 0, 1},
+    {"version", no_argument, 0, 2},
+    {0, no_argument, 0, 'l'},
+    {0, 0, 0, 0}
+};
 
 bool includeALL = false;
 bool includeALLshort = false;
