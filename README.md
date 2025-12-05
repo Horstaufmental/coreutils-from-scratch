@@ -20,15 +20,42 @@ so that's how this project came to be
 
 this is mostly just for learning purposes and are not built with the mindset to be used as your daily coreutils programs
 
-for most tools that only consisted of one single source code file, `.c` can be simply complied with a compiler in your terminal like so:
+### Building
 
+this project now uses **CMake** as its build system,
+
+to build all utilities:
+
+```bash
+# Create a build directory
+mkdir build
+cd build
+
+# Configure and build
+cmake ..
+make
+
+# Binaries will be in build/bin/
 ```
-$ gcc mkdir.c -o mkdir
+
+to build a specific utility:
+
+```bash
+make <utility-name>
+# Example: make ls
 ```
 
-while tools that have more than one files will usually include a `Makefile`, which can be simply be built by running `make` in your terminal
+to install the utilities to your system (optional):
 
-a prebuilt binary (usually for x86_64 devices) can be found in most of the tools (usually in the each of the respective tool's folder or inside their `bin` folder)
+```bash
+sudo make install
+```
+
+**Note:** you can still compile single-file utilities manually if preferred:
+
+```bash
+gcc src/mkdir/mkdir.c -o mkdir
+```
 
 ## Features
 
