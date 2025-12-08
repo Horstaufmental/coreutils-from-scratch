@@ -3,8 +3,8 @@
 
 #include <stddef.h>
 
-extern unsigned char decoding_table[256];
-extern unsigned char url_decoding_table[256];
+extern unsigned char base64_decoding_table[256];
+extern unsigned char base64url_decoding_table[256];
 extern unsigned char base58_decoding_table[256];
 extern unsigned char base32_decoding_table[256];
 extern unsigned char base32hex_decoding_table[256];

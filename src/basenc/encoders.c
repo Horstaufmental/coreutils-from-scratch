@@ -6,12 +6,10 @@
 #include <stdio.h>
 #include <errno.h>
 
-// base64
-const char encoding_table[] =
+const char base64_encoding_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const char url_encoding_table[] =
+const char base64url_encoding_table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-// the rest
 const char base58_alphabet[] =
     "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const char base32_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -31,7 +29,7 @@ char *base64_encode(const unsigned char *data, size_t input_length,
     return NULL;
   }
 
-  int i, j;
+  size_t i, j;
   for (i = 0, j = 0; i < input_length;) {
     uint32_t octet_a = i < input_length ? data[i++] : 0;
     uint32_t octet_b = i < input_length ? data[i++] : 0;
@@ -39,10 +37,10 @@ char *base64_encode(const unsigned char *data, size_t input_length,
 
     uint32_t triple = (octet_a << 0x10) + (octet_b << 0x08) + octet_c;
 
-    encoded_data[j++] = encoding_table[(triple >> 3 * 6) & 0x3F];
-    encoded_data[j++] = encoding_table[(triple >> 2 * 6) & 0x3F];
-    encoded_data[j++] = encoding_table[(triple >> 1 * 6) & 0x3F];
-    encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
+    encoded_data[j++] = base64_encoding_table[(triple >> 3 * 6) & 0x3F];
+    encoded_data[j++] = base64_encoding_table[(triple >> 2 * 6) & 0x3F];
+    encoded_data[j++] = base64_encoding_table[(triple >> 1 * 6) & 0x3F];
+    encoded_data[j++] = base64_encoding_table[(triple >> 0 * 6) & 0x3F];
   }
 
   int mod = input_length % 3;
@@ -57,6 +55,7 @@ char *base64_encode(const unsigned char *data, size_t input_length,
   return encoded_data;
 }
 
+
 char *base64url_encode(const unsigned char *data, size_t input_length,
                        size_t *output_length) {
   size_t full_len = 4 * ((input_length + 2) / 3);
@@ -66,7 +65,7 @@ char *base64url_encode(const unsigned char *data, size_t input_length,
     return NULL;
   }
 
-  int i = 0, j = 0;
+  size_t i = 0, j = 0;
   while (i < input_length) {
     uint32_t a = i < input_length ? data[i++] : 0;
     uint32_t b = i < input_length ? data[i++] : 0;
@@ -74,10 +73,10 @@ char *base64url_encode(const unsigned char *data, size_t input_length,
 
     uint32_t triple = (a << 16) | (b << 8) | c;
 
-    encoded_data[j++] = url_encoding_table[(triple >> 18) & 0x3F];
-    encoded_data[j++] = url_encoding_table[(triple >> 12) & 0x3F];
-    encoded_data[j++] = url_encoding_table[(triple >> 6) & 0x3F];
-    encoded_data[j++] = url_encoding_table[(triple >> 0) & 0x3F];
+    encoded_data[j++] = base64url_encoding_table[(triple >> 18) & 0x3F];
+    encoded_data[j++] = base64url_encoding_table[(triple >> 12) & 0x3F];
+    encoded_data[j++] = base64url_encoding_table[(triple >> 6) & 0x3F];
+    encoded_data[j++] = base64url_encoding_table[(triple >> 0) & 0x3F];
   }
 
   int mod = input_length % 3;
@@ -304,8 +303,7 @@ char *z85_encode(const unsigned char *data, size_t input_length,
   for (size_t i = 0; i < input_length; i += 4) {
     uint32_t value =
         ((uint32_t)data[i + 0] << 24) | ((uint32_t)data[i + 1] << 16) |
-        ((uint32_t)data[i + 2] << 8) | ((uint32_t)data[i + 3] << 8) |
-        ((uint32_t)data[i + 3] << 0);
+        ((uint32_t)data[i + 2] << 8) | ((uint32_t)data[i + 3] << 0);
 
     char block[5];
     for (int k = 4; k >= 0; k--) {

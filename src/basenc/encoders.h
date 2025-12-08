@@ -4,8 +4,8 @@
 #include "decoders.h"
 #include <stddef.h>
 
-extern const char encoding_table[];
-extern const char url_encoding_table[];
+extern const char base64_encoding_table[];
+extern const char base64url_encoding_table[];
 extern const char base58_alphabet[];
 extern const char base32_alphabet[];
 extern const char base32hex_alphabet[];

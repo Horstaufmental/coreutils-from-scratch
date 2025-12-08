@@ -63,7 +63,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently 27 has been made**
+> **Total of 100 programs: currently 28 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -92,7 +92,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [ ] b2sum
 - [ ] base32
 - [ ] base64
-- [ ] basenc
+- [x] basenc
 - [x] cat
 - [ ] cksum
 - [ ] comm

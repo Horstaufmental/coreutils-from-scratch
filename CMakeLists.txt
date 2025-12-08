@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Common compiler flags
-add_compile_options(-Wall -Wextra -Werror -pedantic -O2 -DNDEBUG -flto -s)
+add_compile_options(-Wall -Wextra -Werror -Wpedantic -pedantic-errors -O2 -DNDEBUG -flto -s)
 
 # Set output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -59,16 +59,24 @@ target_include_directories(ls PRIVATE src/ls)
 add_executable(uname src/uname/uname.c)
 target_compile_definitions(uname PRIVATE OPERATING_SYSTEM="GNU/Linux")
 
+# basenc - multi-file utility
+add_executable(basenc
+    src/basenc/basenc.c
+    src/basenc/encoders.c
+    src/basenc/decoders.c
+)
+target_include_directories(basenc PRIVATE src/basenc)
+
 # id - requires selinux library
 add_executable(id src/id/id.c)
 target_link_libraries(id selinux)
 
 # Optional: Install targets
-install(TARGETS ${SINGLE_FILE_UTILS} true false ls uname id
+install(TARGETS ${SINGLE_FILE_UTILS} true false ls uname basenc id
     RUNTIME DESTINATION bin
 )
 
 # Custom target to build all
 add_custom_target(all_utils ALL
-    DEPENDS ${SINGLE_FILE_UTILS} true false ls uname id
+    DEPENDS ${SINGLE_FILE_UTILS} true false ls uname basenc id
 )

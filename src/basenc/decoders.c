@@ -7,27 +7,25 @@
 #include <errno.h>
 #include <stdio.h>
 
-// Base64
-unsigned char decoding_table[256];
-unsigned char url_decoding_table[256];
-// the rest
+unsigned char base64_decoding_table[256];
+unsigned char base64url_decoding_table[256];
 unsigned char base58_decoding_table[256];
 unsigned char base32_decoding_table[256];
 unsigned char base32hex_decoding_table[256];
-unsigned char base16hex_decoding_table[256];
+unsigned char base16_decoding_table[256];
 unsigned char z85_decoding_table[256];
 
-void init_decoding_table(void) {
-  memset(decoding_table, 0x80, 256);
+void init_base64_decoding_table(void) {
+  memset(base64_decoding_table, 0x80, 256);
   for (int i = 0; i < 64; ++i) {
-    decoding_table[(unsigned char)encoding_table[i]] = i;
+    base64_decoding_table[(unsigned char)base64_encoding_table[i]] = i;
   }
 }
 
 void init_url_decoding_table(void) {
-  memset(url_decoding_table, 0x80, 256);
+  memset(base64url_decoding_table, 0x80, 256);
   for (int i = 0; i < 64; ++i) {
-    url_decoding_table[(unsigned char)url_encoding_table[i]] = i;
+    base64url_decoding_table[(unsigned char)base64url_encoding_table[i]] = i;
   }
 }
 
@@ -53,7 +51,7 @@ void init_base32hex_decoding_table(void) {
 }
 
 void init_base16_decoding_table(void) {
-  memset(base16hex_decoding_table, 0x80, 256);
+  memset(base16_decoding_table, 0x80, 256);
   for (int i = 0; i < 16; i++) {
     base16_decoding_table[(unsigned char)base16_alphabet[i]] = i;
   }
@@ -72,7 +70,7 @@ void init_z85_decoding_table(void) {
 
 void init_decode_table_wrapper(unsigned int base) {
   if (base == B_64)
-    init_decoding_table();
+    init_base64_decoding_table();
   else if (base == B_64URL)
     init_url_decoding_table();
   else if (base == B_58)
@@ -107,16 +105,16 @@ unsigned char *base64_decode(const char *data, size_t input_length,
     return NULL;
   }
 
-  int i, j;
+  size_t i, j;
   for (i = 0, j = 0; i < input_length;) {
     uint32_t sextet_a =
-        data[i] == '=' ? 0 & i++ : decoding_table[(unsigned char)data[i++]];
+        data[i] == '=' ? 0 & i++ : base64_decoding_table[(unsigned char)data[i++]];
     uint32_t sextet_b =
-        data[i] == '=' ? 0 & i++ : decoding_table[(unsigned char)data[i++]];
+        data[i] == '=' ? 0 & i++ : base64_decoding_table[(unsigned char)data[i++]];
     uint32_t sextet_c =
-        data[i] == '=' ? 0 & i++ : decoding_table[(unsigned char)data[i++]];
+        data[i] == '=' ? 0 & i++ : base64_decoding_table[(unsigned char)data[i++]];
     uint32_t sextet_d =
-        data[i] == '=' ? 0 & i++ : decoding_table[(unsigned char)data[i++]];
+        data[i] == '=' ? 0 & i++ : base64_decoding_table[(unsigned char)data[i++]];
 
     uint32_t triple = (sextet_a << 3 * 6) | (sextet_b << 2 * 6) |
                       (sextet_c << 1 * 6) | (sextet_d << 0 * 6);
@@ -161,19 +159,19 @@ unsigned char *base64url_decode(const char *data, size_t input_length,
     return NULL;
   }
 
-  int i = 0, j = 0;
+  size_t i = 0, j = 0;
   while (i < padded_len) {
     uint32_t a =
-        padded[i] == '=' ? 0 : url_decoding_table[(unsigned char)padded[i]];
+        padded[i] == '=' ? 0 : base64url_decoding_table[(unsigned char)padded[i]];
     i++;
     uint32_t b =
-        padded[i] == '=' ? 0 : url_decoding_table[(unsigned char)padded[i]];
+        padded[i] == '=' ? 0 : base64url_decoding_table[(unsigned char)padded[i]];
     i++;
     uint32_t c =
-        padded[i] == '=' ? 0 : url_decoding_table[(unsigned char)padded[i]];
+        padded[i] == '=' ? 0 : base64url_decoding_table[(unsigned char)padded[i]];
     i++;
     uint32_t d =
-        padded[i] == '=' ? 0 : url_decoding_table[(unsigned char)padded[i]];
+        padded[i] == '=' ? 0 : base64url_decoding_table[(unsigned char)padded[i]];
     i++;
 
     uint32_t triple = (a << 18) | (b << 12) | (c << 6) | d;
@@ -269,7 +267,7 @@ unsigned char *base32_decode(const char *data, size_t input_length, size_t *outp
         buffer <<= 5;
         valid_bits -= 5;
       } else {
-        unsigned char v = base32_alphabet[(unsigned char)c];
+        unsigned char v = base32_decoding_table[(unsigned char)c];
         if (v & 0x80) {
           free(decoded_data);
           return NULL;
@@ -320,7 +318,7 @@ unsigned char *base32hex_decode(const char *data, size_t input_length, size_t *o
         buffer <<= 5;
         valid_bits -= 5;
       } else {
-        unsigned char v = base32hex_alphabet[(unsigned char)c];
+        unsigned char v = base32hex_decoding_table[(unsigned char)c];
         if (v & 0x80) {
           free(decoded_data);
           return NULL;
