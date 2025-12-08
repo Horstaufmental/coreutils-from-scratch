@@ -3,7 +3,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <errno.h>
 
 // base64
 const char encoding_table[] =
@@ -25,8 +26,10 @@ char *base64_encode(const unsigned char *data, size_t input_length,
                     size_t *output_length) {
   *output_length = 4 * ((input_length + 2) / 3);
   char *encoded_data = (char *)malloc(*output_length + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   int i, j;
   for (i = 0, j = 0; i < input_length;) {
@@ -58,8 +61,10 @@ char *base64url_encode(const unsigned char *data, size_t input_length,
                        size_t *output_length) {
   size_t full_len = 4 * ((input_length + 2) / 3);
   char *encoded_data = malloc(full_len + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   int i = 0, j = 0;
   while (i < input_length) {
@@ -96,8 +101,10 @@ char *base58_encode(const unsigned char *data, size_t input_length,
 
   size_t size = input_length * 138 / 100 + 1;
   unsigned char *buf = malloc(size);
-  if (!buf)
+  if (!buf) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
   memset(buf, 0, size);
 
   size_t high = 0;
@@ -121,6 +128,7 @@ char *base58_encode(const unsigned char *data, size_t input_length,
   char *encoded_data = malloc(*output_length + 1);
   if (!encoded_data) {
     free(buf);
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
   }
 
@@ -141,8 +149,10 @@ char *base32_encode(const unsigned char *data, size_t input_length,
                     size_t *output_length) {
   size_t out_len = ((input_length + 4) / 5) * 8;
   char *encoded_data = malloc(out_len + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   size_t i = 0, j = 0;
 
@@ -179,8 +189,10 @@ char *base32hex_encode(const unsigned char *data, size_t input_length,
                        size_t *output_length) {
   size_t out_len = ((input_length + 4) / 5) * 8;
   char *encoded_data = malloc(out_len + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   size_t i = 0, j = 0;
 
@@ -217,8 +229,10 @@ char *base16_encode(const unsigned char *data, size_t input_length,
                     size_t *output_length) {
   *output_length = input_length * 2;
   char *encoded_data = malloc(*output_length + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   for (size_t i = 0, j = 0; i < input_length; i++) {
     encoded_data[j++] = base16_alphabet[(data[i] >> 4) & 0xF];
@@ -233,8 +247,10 @@ char *base2msbf_encode(const unsigned char *data, size_t input_length,
                        size_t *output_length) {
   *output_length = input_length * 8;
   char *encoded_data = malloc(*output_length + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   size_t j = 0;
   for (size_t i = 0; i < input_length; i++) {
@@ -252,8 +268,10 @@ char *base2lsbf_encode(const unsigned char *data, size_t input_length,
                        size_t *output_length) {
   *output_length = input_length * 8;
   char *encoded_data = malloc(*output_length + 1);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   size_t j = 0;
   for (size_t i = 0; i < input_length; i++) {
@@ -269,13 +287,17 @@ char *base2lsbf_encode(const unsigned char *data, size_t input_length,
 
 char *z85_encode(const unsigned char *data, size_t input_length,
                  size_t *output_length) {
-  if (input_length % 4 != 0)
+  if (input_length % 4 != 0) {
+    fprintf(stderr, "basenc: invalid input (length must be a multiple of 4 characters)\n");
     return NULL;
+  }
 
   *output_length = input_length * 5 / 4;
   char *encoded_data = malloc(*output_length);
-  if (!encoded_data)
+  if (!encoded_data) {
+    fprintf(stderr, "basenc: failed to encode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   size_t j = 0;
 

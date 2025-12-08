@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
+#include <errno.h>
+#include <stdio.h>
 
 // Base64
 unsigned char decoding_table[256];
@@ -88,8 +89,10 @@ void init_decode_table_wrapper(unsigned int base) {
 
 unsigned char *base64_decode(const char *data, size_t input_length,
                              size_t *output_length) {
-  if (input_length % 4 != 0)
+  if (input_length % 4 != 0) {
+    fputs("basenc: invalid input\n", stderr);
     return NULL;
+  }
 
   *output_length = input_length / 4 * 3;
 
@@ -99,8 +102,10 @@ unsigned char *base64_decode(const char *data, size_t input_length,
     (*output_length)--;
 
   unsigned char *decoded_data = malloc(*output_length);
-  if (!decoded_data)
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
     return NULL;
+  }
 
   int i, j;
   for (i = 0, j = 0; i < input_length;) {
@@ -129,16 +134,13 @@ unsigned char *base64_decode(const char *data, size_t input_length,
 
 unsigned char *base64url_decode(const char *data, size_t input_length,
                                 size_t *output_length) {
-  if (input_length == 0) {
-    *output_length = 0;
-    return malloc(1);
-  }
-
   size_t pad = (4 - (input_length % 4)) % 4;
 
   char *padded = malloc(input_length + pad);
-  if (!padded)
+  if (!padded) {
+    fputs("basenc: invalid input\n", stderr);
     return NULL;
+  }
 
   memcpy(padded, data, input_length);
   for (size_t i = 0; i < pad; ++i)
@@ -155,6 +157,7 @@ unsigned char *base64url_decode(const char *data, size_t input_length,
   unsigned char *decoded_data = malloc(*output_length);
   if (!decoded_data) {
     free(padded);
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
     return NULL;
   }
 
@@ -192,7 +195,10 @@ unsigned char* base58_decode(const char *data, size_t input_length, size_t *outp
 
   size_t size = input_length * 733 / 1000 + 1;
   unsigned char *buf = malloc(size);
-  if (!buf) return NULL;
+  if (!buf) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
   memset(buf, 0, size);
 
   size_t high = 0;
@@ -220,7 +226,7 @@ unsigned char* base58_decode(const char *data, size_t input_length, size_t *outp
   *output_length = zeros + (size - p);
   unsigned char *decoded_data = malloc(*output_length);
   if (!decoded_data) {
-    free(buf); return NULL;
+    free(buf); fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno)); return NULL;
   }
 
   size_t idx = 0;
@@ -232,7 +238,10 @@ unsigned char* base58_decode(const char *data, size_t input_length, size_t *outp
 }
 
 unsigned char *base32_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 8 != 0) return NULL;
+  if (input_length % 8 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   size_t final_len = input_length / 8 * 5;
 
@@ -242,7 +251,10 @@ unsigned char *base32_decode(const char *data, size_t input_length, size_t *outp
   if (input_length > 4 && data[input_length - 4] == '=') final_len--;
 
   unsigned char *decoded_data = malloc(final_len);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   size_t i = 0, j = 0;
 
@@ -277,7 +289,10 @@ unsigned char *base32_decode(const char *data, size_t input_length, size_t *outp
 }
 
 unsigned char *base32hex_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 8 != 0) return NULL;
+  if (input_length % 8 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   size_t final_len = input_length / 8 * 5;
 
@@ -287,7 +302,10 @@ unsigned char *base32hex_decode(const char *data, size_t input_length, size_t *o
   if (input_length > 4 && data[input_length - 4] == '=') final_len--;
 
   unsigned char *decoded_data = malloc(final_len);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   size_t i = 0, j = 0;
 
@@ -322,11 +340,17 @@ unsigned char *base32hex_decode(const char *data, size_t input_length, size_t *o
 }
 
 unsigned char *base16_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 2 != 0) return NULL;
+  if (input_length % 2 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   *output_length = input_length / 2;
   unsigned char *decoded_data = malloc(*output_length);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   for (size_t i = 0, j = 0; i < input_length; i += 2, j++) {
     unsigned char hi = base16_decoding_table[(unsigned char)data[i]];
@@ -334,6 +358,7 @@ unsigned char *base16_decode(const char *data, size_t input_length, size_t *outp
 
     if ((hi | lo) & 0x80) {
       free(decoded_data);
+      fputs("basenc: invalid input\n", stderr);
       return NULL;
     }
 
@@ -344,11 +369,17 @@ unsigned char *base16_decode(const char *data, size_t input_length, size_t *outp
 }
 
 unsigned char *base2msbf_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 8 != 0) return NULL;
+  if (input_length % 8 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   *output_length = input_length / 8;
   unsigned char *decoded_data = malloc(*output_length);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   size_t j = 0;
   for (size_t i = 0; i < input_length; i += 8) {
@@ -368,11 +399,17 @@ unsigned char *base2msbf_decode(const char *data, size_t input_length, size_t *o
 }
 
 unsigned char *base2lsbf_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 8 != 0) return NULL;
+  if (input_length % 8 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   *output_length = input_length / 8;
   unsigned char *decoded_data = malloc(*output_length);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   size_t j = 0;
   for (size_t i = 0; i < input_length; i += 8) {
@@ -380,6 +417,7 @@ unsigned char *base2lsbf_decode(const char *data, size_t input_length, size_t *o
     for (int bit = 0; bit < 8; bit++) {
       char c = data[i + bit];
       if (c != '0' && c != '1') {
+        fputs("basenc: invalid input\n", stderr);
         free(decoded_data);
         return NULL;
       }
@@ -392,11 +430,17 @@ unsigned char *base2lsbf_decode(const char *data, size_t input_length, size_t *o
 }
 
 unsigned char* z85_decode(const char *data, size_t input_length, size_t *output_length) {
-  if (input_length % 5 != 0) return NULL;
+  if (input_length % 5 != 0) {
+    fputs("basenc: invalid input\n", stderr);
+    return NULL;
+  }
 
   *output_length = input_length * 4 / 5;
   unsigned char *decoded_data = malloc(*output_length);
-  if (!decoded_data) return NULL;
+  if (!decoded_data) {
+    fprintf(stderr, "basenc: failed to decode data: %s\n", strerror(errno));
+    return NULL;
+  }
 
   size_t j = 0;
 

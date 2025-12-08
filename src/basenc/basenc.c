@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (opt == 0) {
+  if (base == 0) {
     fprintf(stderr,
             "basenc: missing encoding type\n"
             "Try '%s --help' for more information.\n",
