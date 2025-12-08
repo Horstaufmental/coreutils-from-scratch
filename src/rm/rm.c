@@ -33,7 +33,7 @@
 #define PROGRAM_NAME "rm"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#define VERSION "1.2"
 
 bool verbose = false;
 bool recursive = false;
@@ -125,7 +125,10 @@ int prompt_user(const char *message, const char *fileName) {
   } else
     printf("%s '%s'? ", message, fileName);
 
-  fgets(buffer, sizeof(buffer), stdin);
+  if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+    fprintf(stderr, "rm: cannot get reponse: %s\n --- defaulting to 'no'\n", strerror(errno));
+    return 0;
+  }
   buffer[strcspn(buffer, "\n")] = '\0';
   return isYes(buffer);
 }

@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Common compiler flags
-add_compile_options(-Wall -Wextra -Werror -pedantic -O2 -DNDEBUG -march=native -flto -s)
+add_compile_options(-Wall -Wextra -Werror -pedantic -O2 -DNDEBUG -flto -s)
 
 # Set output directory for binaries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

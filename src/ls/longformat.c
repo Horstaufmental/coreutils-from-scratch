@@ -146,8 +146,8 @@ void printlongOutput(const char *fullPath, const char *fileName)
     {
         char buffer[50];
         byteToHR(fileSize, buffer, sizeof(buffer));
-        printf("%c%s %lu %s %s %s %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, buffer, timeString, fileName);
+        printf("%c%s %lu %s %s %s %s %s\n", fileType, permissions, (unsigned long)hardLinkCount, userName, groupName, buffer, timeString, fileName);
         return;
     }
-    printf("%c%s %lu %s %s %li %s %s\n", fileType, permissions, hardLinkCount, userName, groupName, fileSize, timeString, fileName);
+    printf("%c%s %lu %s %s %li %s %s\n", fileType, permissions, (unsigned long)hardLinkCount, userName, groupName, fileSize, timeString, fileName);
 }

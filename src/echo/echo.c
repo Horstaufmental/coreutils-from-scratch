@@ -22,11 +22,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define PROGRAM_NAME "echo"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#define VERSION "1.2"
 
 bool noNewline = false;
 bool backslashEscapes = false;
@@ -236,10 +237,17 @@ int main(int argc, char *argv[]) {
       strncat(parsed, "\n", sizeof(parsed) - strlen(parsed) - 1);
   }
 
-  if (backslashEscapes)
-    write(1, parsed, strlen(parsed));
-  else
-    write(1, message, strlen(message));
+  if (backslashEscapes) {
+    if (write(1, parsed, strlen(parsed)) == -1) {
+      fprintf(stderr, "echo: cannot output message: %s\n", strerror(errno));
+      return 1;
+    }
+  } else {
+    if (write(1, message, strlen(message)) == -1) {
+      fprintf(stderr, "echo: cannot output message: %s\n", strerror(errno));
+      return 1;
+    }
+  }
 
   return 0;
 }

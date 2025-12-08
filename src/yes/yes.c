@@ -14,6 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,7 +23,7 @@
 #define PROGRAM_NAME "whoami"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#define VERSION "1.2"
 
 struct help_entry {
   const char *opt;
@@ -99,5 +100,8 @@ int main(int argc __attribute__((unused)), char *argv[]) {
   strncat(buffer, "\n", sizeof(buffer) - strlen(buffer) - 1);
 
   while (1)
-    write(1, buffer, strlen(buffer));
+    if (write(1, buffer, strlen(buffer)) == -1) {
+      fprintf(stderr, "yes: cannot output message: %s\n", strerror(errno));
+      return 1;
+    }
 }

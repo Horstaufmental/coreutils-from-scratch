@@ -33,7 +33,7 @@
 #define PROGRAM_NAME "cat"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.2"
+#define VERSION "1.3"
 
 #define BUFSIZE 32768 // GNU Coreutils's buffer size for files
 
@@ -366,13 +366,21 @@ int main(int argc, char *argv[])
 
   if (argc - optind == 0)
   {
-    char buf[4096];
+    char buf[BUFSIZ];
     while (true)
     {
-      fgets(buf, sizeof(buf), stdin);
-      if (feof(stdin))
+      char *r;
+      r = fgets(buf, sizeof(buf), stdin);
+      if (r == NULL && feof(stdin))
         break;
-      write(STDOUT_FILENO, buf, strlen(buf));
+      else if (r == NULL && ferror(stdin)) {
+        fprintf(stderr, "cat: %s\n", strerror(errno));
+        return 1;
+      }
+      if (write(STDOUT_FILENO, buf, strlen(buf)) == -1) {
+        fprintf(stderr, "cat: %s\n", strerror(errno));
+        return 1;
+      }
     }
   }
   else
@@ -384,10 +392,18 @@ int main(int argc, char *argv[])
         char buf[BUFSIZ];
         while (true)
         {
-          fgets(buf, sizeof(buf), stdin);
-          if (feof(stdin))
+          char *r;
+          r = fgets(buf, sizeof(buf), stdin);
+          if (r == NULL && feof(stdin))
             break;
-          write(STDOUT_FILENO, buf, strlen(buf));
+          else if (r == NULL && ferror(stdin)) {
+            fprintf(stderr, "cat: %s\n", strerror(errno));
+            return 1;
+          }
+          if (write(STDOUT_FILENO, buf, strlen(buf)) == -1) {
+            fprintf(stderr, "cat: %s\n", strerror(errno));
+            return 1;
+          }
         }
         continue;
       }
