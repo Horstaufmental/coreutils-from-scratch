@@ -28,7 +28,7 @@ unsigned char* base64url_decode(const char *data, size_t input_length, size_t *o
 unsigned char* base58_decode(const char *data, size_t input_length, size_t *output_length);
 unsigned char* base32_decode(const char *data, size_t input_length, size_t *output_length);
 unsigned char* base32hex_decode(const char *data, size_t input_length, size_t *output_length);
-unsigned char* base12_decode(const char *data, size_t input_length, size_t *output_length);
+unsigned char* base16_decode(const char *data, size_t input_length, size_t *output_length);
 unsigned char* base2msbf_decode(const char *data, size_t input_length, size_t *output_length);
 unsigned char* base2lsbf_decode(const char *data, size_t input_length, size_t *output_length);
 unsigned char* z85_decode(const char *data, size_t input_length, size_t *output_length);
