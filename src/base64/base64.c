@@ -27,7 +27,7 @@
 #define PROGRAM_NAME "base64"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 struct help_entry {
   const char *opt;
@@ -54,7 +54,7 @@ static struct help_entry help_entries[] = {
 
 void print_help(const char *name) {
   printf("Usage: %s [OPTION]... [FILE]\n", name);
-  printf("basenc encode or decode FILE, or standard input, to standard "
+  printf("Base64 encode or decode FILE, or standard input, to standard "
          "output.\n\n");
 
   printf("With no FILE, or when FILE is -, read standard input.\n\n"
@@ -73,9 +73,10 @@ void print_help(const char *name) {
   for (int i = 0; help_entries[i].opt; i++) {
     printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
   }
-  fputs("\nWhen decoding, the input may contain newlines in addition to the "
+  puts("\nThe data are encoded as described for the base64 alphabet in RFC 4648.");
+  fputs("When decoding, the input may contain newlines in addition to the "
         "bytes of\n"
-        "the formal alphabet. Use --ignore-garbage to attempt to recover\n"
+        "the formal base64 alphabet. Use --ignore-garbage to attempt to recover\n"
         "from any other non-alphabet bytes in the encoded stream.\n",
         stdout);
 }
@@ -245,6 +246,8 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
+
+  if (decode) init_base64_decoding_table();
 
   if (argc == optind) {
   stdin_mode:;
