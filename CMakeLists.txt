@@ -34,6 +34,7 @@ set(SINGLE_FILE_UTILS
     wc
     whoami
     yes
+    base64
 )
 
 # Build each single-file utility
