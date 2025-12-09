@@ -35,6 +35,7 @@ set(SINGLE_FILE_UTILS
     whoami
     yes
     base64
+    base32
 )
 
 # Build each single-file utility
