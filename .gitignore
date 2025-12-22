@@ -60,3 +60,9 @@ dkms.conf
 WARP.md
 tests/
 build/
+
+# Rust stuffs
+target/
+debug/
+**/*.rs.bk
+**/mutants.out*/
