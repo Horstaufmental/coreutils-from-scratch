@@ -1,3 +1,19 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils-rs from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils-rs from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * coreutils-rs from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 use std::env;
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -172,7 +188,10 @@ fn parse_args() -> Result<Options, ParseError> {
                 LongOptions::SqueezeBlank => options.squeeze_blank = true,
                 LongOptions::ShowTabs => options.show_tabs = true,
                 LongOptions::ShowNonPrinting => options.show_nonprinting = true,
-                LongOptions::Help => (),
+                LongOptions::Help => {
+                    print_help(PROGRAM_NAME.to_string());
+                    process::exit(0);
+                }
                 LongOptions::Version => {
                     print_version();
                     process::exit(0);
@@ -233,11 +252,24 @@ fn run() -> Result<(), UtilError> {
 }
 
 fn cat_files(opts: Options) -> Result<(), UtilError> {
+    let mut out = io::stdout().lock();
+
     if opts.files.len() < 1 {
-        return Err(UtilError::Parse(ParseError::NoInput));
+        read_stdin(&mut out).map_err(|e| UtilError::Io {
+            path: "<stdout>".into(),
+            err: e,
+        })?;
+        return Ok(());
     }
 
     for path in &opts.files {
+        if path == "-" {
+            read_stdin(&mut out).map_err(|e| UtilError::Io {
+                path: "<stdout>".into(),
+                err: e,
+            })?;
+            continue;
+        }
         let mut file = File::open(&path).map_err(|e| UtilError::Io {
             path: path.clone(),
             err: e,
@@ -248,8 +280,6 @@ fn cat_files(opts: Options) -> Result<(), UtilError> {
         let mut prev_blank = false;
 
         let mut line_num: u64 = 0;
-
-        let mut out = io::stdout().lock();
 
         loop {
             let n = file.read(&mut buffer).map_err(|e| UtilError::Io {
@@ -323,6 +353,25 @@ fn cat_files(opts: Options) -> Result<(), UtilError> {
     Ok(())
 }
 
+fn read_stdin(out: &mut impl Write) -> io::Result<()> {
+    let mut buffer = [0u8; 32768]; // gnu cat buffer size
+    let mut sdin = io::stdin().lock();
+
+    loop {
+        let n = sdin.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..n {
+            let c = buffer[i];
+            write!(out, "{}", c as char)?;
+        }
+    }
+
+    Ok(())
+}
+
 fn print_line_num(
     is_blank: bool,
     opts: &Options,
@@ -372,6 +421,10 @@ fn print_help(name: String) {
         if len > maxlen {
             maxlen = len;
         }
+    }
+
+    for entry in HELP_ENTRIES.iter() {
+        println!("  {:<width$}  {}", entry.opt, entry.desc, width = maxlen);
     }
 }
 
