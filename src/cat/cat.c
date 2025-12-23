@@ -172,7 +172,8 @@ int read_fd(int fd, bool showNonPrinting, bool showTabs,
 
       if (c == '\n')
       {
-        if (prevBlank && squeezeBlank)
+        bool isBlank = atLineStart;
+        if (isBlank && prevBlank && squeezeBlank)
         {
           // skip
           continue;
@@ -187,7 +188,7 @@ int read_fd(int fd, bool showNonPrinting, bool showTabs,
           putchar('$');
         putchar('\n');
 
-        prevBlank = true;
+        prevBlank = isBlank;
         atLineStart = true;
       }
       else
