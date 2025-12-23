@@ -1,12 +1,68 @@
 use std::env;
 use std::fs::File;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Read, Write};
 use std::process;
 
-static PROGRAM_NAME: &str = "cat";
-static PROJECT_NAME: &str = "coreutils-rs from scratch";
-static AUTHORS: &str = "Horstaufmental";
-static VERSION: &str = "1.0";
+static PROGRAM_NAME: &'static str = "cat";
+static PROJECT_NAME: &'static str = "coreutils-rs from scratch";
+static AUTHORS: &'static str = "Horstaufmental";
+static VERSION: &'static str = "1.0";
+
+struct HelpEntry {
+    opt: &'static str,
+    desc: &'static str,
+}
+
+static HELP_ENTRIES: [HelpEntry; 12] = [
+    HelpEntry {
+        opt: "-A, --show-all",
+        desc: "equivalent to -vET",
+    },
+    HelpEntry {
+        opt: "-b, --number-nonblank",
+        desc: "number nonempty output lines, overrides -n",
+    },
+    HelpEntry {
+        opt: "-e",
+        desc: "equivalent to -vE",
+    },
+    HelpEntry {
+        opt: "-E, --show-ends",
+        desc: "display $ at end of each line",
+    },
+    HelpEntry {
+        opt: "-n, --number",
+        desc: "number all output lines",
+    },
+    HelpEntry {
+        opt: "-s, --squeeze-blank",
+        desc: "suppress repeated empty output lines",
+    },
+    HelpEntry {
+        opt: "-t",
+        desc: "equivalent to -vT",
+    },
+    HelpEntry {
+        opt: "-T, --show-tabs",
+        desc: "display TAB characters as ^I",
+    },
+    HelpEntry {
+        opt: "-u",
+        desc: "(ignored)",
+    },
+    HelpEntry {
+        opt: "-v, --show-nonprinting",
+        desc: "use ^ and M- notation, except for LFD and TAB",
+    },
+    HelpEntry {
+        opt: "    --help",
+        desc: "display this help and exit",
+    },
+    HelpEntry {
+        opt: "    --version",
+        desc: "output version information and exit",
+    },
+];
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -106,7 +162,7 @@ fn parse_args() -> Result<Options, ParseError> {
         if let Some(rest) = arg.strip_prefix("--") {
             let (name, _value) = match rest.split_once('=') {
                 Some((n, v)) => (n, Some(v)),
-                None => (rest, None),
+                _ => (rest, None),
             };
 
             match parse_long_opt(name)? {
@@ -176,43 +232,146 @@ fn run() -> Result<(), UtilError> {
     Ok(())
 }
 
-// our C's cat reads buffer by char, in this case we're reading by line
-// so we'll have to adapt our code to bufread
 fn cat_files(opts: Options) -> Result<(), UtilError> {
     if opts.files.len() < 1 {
         return Err(UtilError::Parse(ParseError::NoInput));
     }
 
     for path in &opts.files {
-        let file = File::open(&path).map_err(|e| UtilError::Io {
+        let mut file = File::open(&path).map_err(|e| UtilError::Io {
             path: path.clone(),
             err: e,
         })?;
-        let reader = io::BufReader::new(file);
+
+        let mut buffer = [0u8; 32768]; // gnu cat buffer size
+        let mut at_line_start = true;
+        let mut prev_blank = false;
+
+        let mut line_num: u64 = 0;
+
         let mut out = io::stdout().lock();
 
-        for line in reader.lines() {
-            let line = line.map_err(|e| UtilError::Io {
+        loop {
+            let n = file.read(&mut buffer).map_err(|e| UtilError::Io {
                 path: path.clone(),
                 err: e,
             })?;
-            writeln!(out, "{}", line).map_err(|e| UtilError::Io {
-                path: path.clone(),
-                err: e,
-            })?;
+            if n == 0 {
+                break;
+            }
+
+            for i in 0..n {
+                let c = buffer[i];
+
+                if c == b'\n' {
+                    if prev_blank && opts.squeeze_blank {
+                        continue;
+                    }
+
+                    if at_line_start {
+                        print_line_num(true, &opts, &mut line_num, &mut out).map_err(|e| {
+                            UtilError::Io {
+                                path: path.clone(),
+                                err: e,
+                            }
+                        })?;
+                    }
+
+                    if opts.show_ends {
+                        write!(out, "$").map_err(|e| UtilError::Io {
+                            path: path.clone(),
+                            err: e,
+                        })?;
+                    }
+
+                    write!(out, "\n").map_err(|e| UtilError::Io {
+                        path: path.clone(),
+                        err: e,
+                    })?;
+                    prev_blank = true;
+                    at_line_start = true;
+                } else {
+                    if at_line_start {
+                        print_line_num(false, &opts, &mut line_num, &mut out).map_err(|e| {
+                            UtilError::Io {
+                                path: path.clone(),
+                                err: e,
+                            }
+                        })?;
+                        at_line_start = false;
+                    }
+                    prev_blank = false;
+
+                    if c == b'\t' && opts.show_tabs {
+                        write!(out, "^I").map_err(|e| UtilError::Io {
+                            path: path.clone(),
+                            err: e,
+                        })?;
+                    } else {
+                        print_vis(c, opts.show_nonprinting, &mut out).map_err(|e| {
+                            UtilError::Io {
+                                path: path.clone(),
+                                err: e,
+                            }
+                        })?;
+                    }
+                }
+            }
         }
     }
 
     Ok(())
 }
 
-fn print_line_num(opts: Options, is_blank: bool, mut line_num: u32) {
+fn print_line_num(
+    is_blank: bool,
+    opts: &Options,
+    line_num: &mut u64,
+    out: &mut impl Write,
+) -> io::Result<()> {
     if opts.number_nonblank && is_blank {
-        return;
+        return Ok(());
     }
     if opts.number || (opts.number_nonblank && !is_blank) {
-        line_num += 1;
-        print!("{:>6}", line_num);
+        *line_num += 1;
+        write!(out, "{:>6}", *line_num)?;
+    }
+
+    Ok(())
+}
+
+fn print_vis(c: u8, show_nonprint: bool, out: &mut impl Write) -> io::Result<()> {
+    if !show_nonprint {
+        write!(out, "{}", c as char)?;
+        return Ok(());
+    }
+
+    match c {
+        b'\n' | b'\t' => write!(out, "{}", c as char)?,
+        0..=31 => write!(out, "^{}", (c + 64) as char)?,
+        127 => write!(out, "^?")?,
+        128..=255 => {
+            write!(out, "M-")?;
+            print_vis(c - 128, true, out)?;
+        }
+        _ => write!(out, "{}", c as char)?,
+    }
+
+    Ok(())
+}
+
+fn print_help(name: String) {
+    println!("Usage: {} [OPTION]... [FILE]...", name);
+    println!("Concatenate FILE(s) to standard output.\n");
+
+    println!("With no FILE, or when FILE is -, read standard input.\n");
+
+    let mut maxlen = 0;
+    for entry in HELP_ENTRIES.iter() {
+        let len = entry.opt.len();
+        if len > maxlen {
+            maxlen = len;
+        }
     }
 }
 
