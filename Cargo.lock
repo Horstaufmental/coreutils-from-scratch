@@ -51,6 +51,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "head"
+version = "1.0.0"
+dependencies = [
+ "tempfile",
+ "util",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.178"
 source = "registry+https://github.com/rust-lang/crates.io-index"
