@@ -58,7 +58,6 @@ dkms.conf
 .idea/
 .vscode/
 WARP.md
-tests/
 build/
 
 # Rust stuffs
