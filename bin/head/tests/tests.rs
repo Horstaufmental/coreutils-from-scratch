@@ -1,5 +1,5 @@
+use head::{head_files, parse_args, Options, ParseError, ParseOutcome};
 use std::io::Write;
-use head::{parse_args, head_files, Options, ParseOutcome, ParseError};
 use tempfile::NamedTempFile;
 
 // PARSER TESTS
@@ -121,13 +121,14 @@ fn multiple_files_print_headers() {
 
     let mut out = Vec::new();
     head_files(
-        &opts, 
+        &opts,
         &[
             f1.path().to_str().unwrap().into(),
             f2.path().to_str().unwrap().into(),
-        ], 
-        &mut out
-    ).unwrap();
+        ],
+        &mut out,
+    )
+    .unwrap();
 
     let s = String::from_utf8(out).unwrap();
 
