@@ -14,18 +14,22 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-pub struct HelpEntry {
-    pub opt: &'static str,
-    pub desc: &'static str,
+use r#false::{parse_args, ParseOutcome};
+use std::process::Command;
+
+#[test]
+fn exit_status_is_failure() {
+    let output = Command::new("cargo")
+        .args(["run", "-p", "false", "--quiet"])
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(!output.status.success());
+    assert_eq!(Some(1), output.status.code());
 }
 
-pub fn print_help(usage: &str, description: &str, entries: &[HelpEntry]) {
-    println!("{usage}");
-    println!("{description}\n");
-
-    let maxlen = entries.iter().map(|e| e.opt.len()).max().unwrap_or(0);
-
-    for e in entries {
-        println!("  {:<width$}  {}", e.opt, e.desc, width = maxlen);
-    }
+#[test]
+fn help_short_circuits() {
+    let args = vec!["--help".into()];
+    assert!(matches!(parse_args(&args).unwrap(), ParseOutcome::Help));
 }
