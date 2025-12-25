@@ -205,7 +205,7 @@ pub fn cat_files(
 ) -> Result<(), UtilError> {
     if files.is_empty() {
         read_stdin(out).map_err(|e| UtilError::Io {
-            path: "<stdout>".into(),
+            path: "<stdin>".into(),
             err: e,
         })?;
         return Ok(());
@@ -214,7 +214,7 @@ pub fn cat_files(
     for path in files {
         if path == "-" {
             read_stdin(out).map_err(|e| UtilError::Io {
-                path: "<stdout>".into(),
+                path: "<stdin>".into(),
                 err: e,
             })?;
             continue;

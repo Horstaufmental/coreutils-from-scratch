@@ -1,5 +1,5 @@
-use head::{head_files, parse_args, Options, ParseError, ParseOutcome};
-use std::io::Write;
+use head::{head_files, parse_args, Count, Options, ParseError, ParseOutcome};
+use std::io::{self, Cursor, Write};
 use tempfile::NamedTempFile;
 
 // PARSER TESTS
@@ -11,8 +11,16 @@ fn default_is_10_line() {
         panic!();
     };
 
-    assert_eq!(opts.lines, Some(10));
-    assert_eq!(opts.bytes, None);
+    assert_eq!(
+        match opts.lines {
+            Some(c) => match c {
+                Count::First(n) | Count::AllButLast(n) => n,
+            },
+            _ => 0,
+        },
+        10
+    );
+    assert!(opts.bytes.is_none());
     assert!(files.is_empty());
 }
 
@@ -23,7 +31,15 @@ fn parse_n_lines() {
         panic!();
     };
 
-    assert_eq!(opts.lines, Some(5));
+    assert_eq!(
+        match opts.lines {
+            Some(c) => match c {
+                Count::First(n) | Count::AllButLast(n) => n,
+            },
+            _ => 0,
+        },
+        5
+    );
 }
 
 #[test]
@@ -33,7 +49,15 @@ fn parse_long_lines_equals() {
         panic!();
     };
 
-    assert_eq!(opts.lines, Some(7));
+    assert_eq!(
+        match opts.lines {
+            Some(c) => match c {
+                Count::First(n) | Count::AllButLast(n) => n,
+            },
+            _ => 0,
+        },
+        7
+    );
 }
 
 #[test]
@@ -43,8 +67,14 @@ fn parse_bytes_overrides_lines() {
         panic!();
     };
 
-    assert_eq!(opts.lines, None);
-    assert_eq!(opts.bytes, Some(3));
+    assert!(opts.lines.is_none());
+    assert!(match opts.bytes {
+        Some(t) => match t {
+            Count::First(3) => true,
+            _ => false,
+        },
+        _ => false,
+    });
 }
 
 #[test]
@@ -77,12 +107,19 @@ fn head_first_3_lines() {
     writeln!(file, "a\nb\nc\nd").unwrap();
 
     let opts = Options {
-        lines: Some(3),
+        lines: Some(Count::First(3)),
         ..Default::default()
     };
 
     let mut out = Vec::new();
-    head_files(&opts, &[file.path().to_str().unwrap().into()], &mut out).unwrap();
+    let mut sdin = io::stdin().lock();
+    head_files(
+        &opts,
+        &[file.path().to_str().unwrap().into()],
+        &mut sdin,
+        &mut out,
+    )
+    .unwrap();
 
     let s = String::from_utf8(out).unwrap();
     assert_eq!(s, "a\nb\nc\n");
@@ -94,13 +131,20 @@ fn head_first_4_bytes() {
     writeln!(file, "abcdef").unwrap();
 
     let opts = Options {
-        bytes: Some(4),
+        bytes: Some(Count::First(4)),
         lines: None,
         ..Default::default()
     };
 
     let mut out = Vec::new();
-    head_files(&opts, &[file.path().to_str().unwrap().into()], &mut out).unwrap();
+    let mut sdin = io::stdin().lock();
+    head_files(
+        &opts,
+        &[file.path().to_str().unwrap().into()],
+        &mut sdin,
+        &mut out,
+    )
+    .unwrap();
 
     let s = String::from_utf8(out).unwrap();
     assert_eq!(s, "abcd");
@@ -115,17 +159,19 @@ fn multiple_files_print_headers() {
     writeln!(f2, "b").unwrap();
 
     let opts = Options {
-        lines: Some(1),
+        lines: Some(Count::First(1)),
         ..Default::default()
     };
 
     let mut out = Vec::new();
+    let mut sdin = io::stdin().lock();
     head_files(
         &opts,
         &[
             f1.path().to_str().unwrap().into(),
             f2.path().to_str().unwrap().into(),
         ],
+        &mut sdin,
         &mut out,
     )
     .unwrap();
@@ -135,4 +181,148 @@ fn multiple_files_print_headers() {
     assert!(s.contains("==>"));
     assert!(s.contains("a"));
     assert!(s.contains("b"));
+}
+
+#[test]
+fn dont_print_when_quiet_enabled() {
+    let mut f1 = NamedTempFile::new().unwrap();
+    let mut f2 = NamedTempFile::new().unwrap();
+
+    writeln!(f1, "a").unwrap();
+    writeln!(f2, "b").unwrap();
+
+    let opts = Options {
+        lines: Some(Count::First(1)),
+        quiet: true,
+        ..Default::default()
+    };
+
+    let mut out = Vec::new();
+    let mut sdin = io::stdin().lock();
+    head_files(
+        &opts,
+        &[
+            f1.path().to_str().unwrap().into(),
+            f2.path().to_str().unwrap().into(),
+        ],
+        &mut sdin,
+        &mut out,
+    )
+    .unwrap();
+    let s = String::from_utf8(out).unwrap();
+
+    assert!(!s.contains("==>"));
+    assert!(s.contains("a"));
+    assert!(s.contains("b"));
+}
+
+#[test]
+fn always_print_when_verbose_enabled() {
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, "a").unwrap();
+
+    let opts = Options {
+        lines: Some(Count::First(1)),
+        verbose: true,
+        ..Default::default()
+    };
+
+    let mut out = Vec::new();
+    let mut sdin = io::stdin().lock();
+    head_files(
+        &opts,
+        &[file.path().to_str().unwrap().into()],
+        &mut sdin,
+        &mut out,
+    )
+    .unwrap();
+    let s = String::from_utf8(out).unwrap();
+
+    assert!(s.contains("==>"));
+    assert!(s.contains("a"));
+}
+
+#[test]
+fn print_stdin_header_empty_verbose() {
+    let opts = Options {
+        verbose: true,
+        ..Default::default()
+    };
+
+    let input = b"a\nb\nc";
+    let mut out = Vec::new();
+    let mut sdin = Cursor::new(input);
+    head_files(&opts, &[], &mut sdin, &mut out).unwrap();
+    let s = String::from_utf8(out).unwrap();
+
+    assert!(s.contains("==> standard input <=="));
+}
+
+#[test]
+fn print_file_und_stdin_header_non_verbose() {
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, "a").unwrap();
+
+    let opts = Options {
+        ..Default::default()
+    };
+
+    let input = b"b";
+    let mut out = Vec::new();
+    let mut sdin = Cursor::new(input);
+    head_files(
+        &opts,
+        &[file.path().to_str().unwrap().into(), String::from("-")],
+        &mut sdin,
+        &mut out,
+    )
+    .unwrap();
+    let s = String::from_utf8(out).unwrap();
+
+    assert!(s.contains("==> standard input <=="));
+}
+
+#[test]
+fn head_file_till_nul() {
+    let opts = Options {
+        null_termed: true,
+        ..Default::default()
+    };
+
+    let input = b"a\nb\0\nc\nd";
+    let mut out = Vec::new();
+    let mut sdin = Cursor::new(input);
+    head_files(&opts, &[], &mut sdin, &mut out).unwrap();
+    let s = String::from_utf8(out).unwrap();
+
+    assert!(s.contains("a\nb"))
+}
+
+#[test]
+fn zero_terminated_lines() {
+    let input = b"a\0b\0c\0";
+    let mut out = Vec::new();
+    let mut sdin = std::io::Cursor::new(input);
+
+    let opts = Options {
+        null_termed: true,
+        lines: Some(Count::First(2)),
+        ..Default::default()
+    };
+
+    head_files(&opts, &[], &mut sdin, &mut out).unwrap();
+
+    assert_eq!(&out, b"a\0b\0");
+}
+
+#[test]
+fn opt_verbose_overrides_quiet() {
+    let args = vec!["--quiet".into(), "--verbose".into()];
+
+    let ParseOutcome::Ok(opts, _) = parse_args(&args).unwrap() else {
+        panic!();
+    };
+
+    assert_eq!(opts.quiet, false);
+    assert_eq!(opts.verbose, true);
 }

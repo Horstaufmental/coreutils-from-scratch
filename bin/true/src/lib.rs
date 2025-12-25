@@ -73,9 +73,9 @@ pub enum ParseOutcome {
 }
 
 pub fn parse_args(args: &[String]) -> Result<ParseOutcome, ParseError> {
-    let mut it = ArgIter::new(args);
+    let it = ArgIter::new(args);
 
-    while let Some(arg) = it.next() {
+    for arg in it {
         match arg {
             Arg::Long("help") => {
                 return Ok(ParseOutcome::Help);

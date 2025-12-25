@@ -81,7 +81,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 
 also these utilities aim to replicate **GNU coreutils behavior**, not provide a rust wrapper API
 
-> **Total of 100 programs: currently 1 has been made**
+> **Total of 100 programs: currently 4 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -119,7 +119,7 @@ also these utilities aim to replicate **GNU coreutils behavior**, not provide a 
 - [ ] expand
 - [ ] fmt
 - [ ] fold
-- [ ] head
+- [x] head
 - [ ] md5sum
 - [ ] nl
 - [ ] numfmt
@@ -154,7 +154,7 @@ also these utilities aim to replicate **GNU coreutils behavior**, not provide a 
 - [ ] env
 - [ ] expr
 - [ ] factor
-- [ ] false
+- [x] false
 - [ ] groups
 - [ ] hostid
 - [ ] id
@@ -177,7 +177,7 @@ also these utilities aim to replicate **GNU coreutils behavior**, not provide a 
 - [ ] tee
 - [ ] test
 - [ ] timeout
-- [ ] true
+- [x] true
 - [ ] tty
 - [ ] uname
 - [ ] unlink
