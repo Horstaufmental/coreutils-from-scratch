@@ -12,36 +12,37 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Single-file utilities
 set(SINGLE_FILE_UTILS
-    arch
-    cat
-    echo
-    groups
-    hostid
-    kill
-    link
-    logname
-    mkdir
-    mktemp
-    nproc
-    printenv
-    pwd
-    rm
-    rmdir
-    sleep
-    touch
-    tty
-    unlink
-    wc
-    whoami
-    yes
-    base64
-    base32
+        arch
+        cat
+        echo
+        groups
+        hostid
+        kill
+        link
+        logname
+        mkdir
+        mktemp
+        nproc
+        printenv
+        pwd
+        rm
+        rmdir
+        sleep
+        touch
+        tty
+        unlink
+        wc
+        whoami
+        yes
+        base64
+        base32
+        head
 )
 
 # Build each single-file utility
-foreach(util ${SINGLE_FILE_UTILS})
+foreach (util ${SINGLE_FILE_UTILS})
     add_executable(${util} src/${util}/${util}.c)
-endforeach()
+endforeach ()
 
 # true and false (from true_false directory)
 add_executable(true src/true_false/true.c)
@@ -49,11 +50,11 @@ add_executable(false src/true_false/false.c)
 
 # ls - multi-file utility
 add_executable(ls
-    src/ls/main.c
-    src/ls/longformat.c
-    src/ls/bytetohr.c
-    src/ls/print_help.c
-    src/ls/print_version.c
+        src/ls/main.c
+        src/ls/longformat.c
+        src/ls/bytetohr.c
+        src/ls/print_help.c
+        src/ls/print_version.c
 )
 target_include_directories(ls PRIVATE src/ls)
 
@@ -63,9 +64,9 @@ target_compile_definitions(uname PRIVATE OPERATING_SYSTEM="GNU/Linux")
 
 # basenc - multi-file utility
 add_executable(basenc
-    src/basenc/basenc.c
-    src/basenc/encoders.c
-    src/basenc/decoders.c
+        src/basenc/basenc.c
+        src/basenc/encoders.c
+        src/basenc/decoders.c
 )
 target_include_directories(basenc PRIVATE src/basenc)
 
@@ -75,10 +76,10 @@ target_link_libraries(id selinux)
 
 # Optional: Install targets
 install(TARGETS ${SINGLE_FILE_UTILS} true false ls uname basenc id
-    RUNTIME DESTINATION bin
+        RUNTIME DESTINATION bin
 )
 
 # Custom target to build all
 add_custom_target(all_utils ALL
-    DEPENDS ${SINGLE_FILE_UTILS} true false ls uname basenc id
+        DEPENDS ${SINGLE_FILE_UTILS} true false ls uname basenc id
 )

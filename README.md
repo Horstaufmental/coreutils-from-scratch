@@ -63,7 +63,7 @@ since this whole purpose are for learning, most utilities will be quite unoptimi
 
 some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e.g. dircolors) are excluded
 
-> **Total of 100 programs: currently 30 has been made**
+> **Total of 100 programs: currently 31 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -101,7 +101,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 - [ ] expand
 - [ ] fmt
 - [ ] fold
-- [ ] head
+- [x] head
 - [ ] md5sum
 - [ ] nl
 - [ ] numfmt
