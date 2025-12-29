@@ -14,29 +14,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-use std::fmt;
+use yes::{parse_args, yes, ParseOutcome};
 
-#[derive(Debug)]
-pub enum UtilError {
-    Parse(String),
-    Io { path: String, err: std::io::Error },
-    IoNoPath { err: std::io::Error },
+#[test]
+fn default_string_is_y() {
+    let mut out = Vec::new();
+    yes(&Vec::new(), &mut out, true).unwrap();
+
+    let output = String::from_utf8(out).unwrap();
+
+    assert_eq!(output, "y\n");
 }
 
-impl UtilError {
-    pub fn exit_code(&self) -> i32 {
-        1
-    }
-}
-
-impl fmt::Display for UtilError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UtilError::Parse(err) => write!(f, "{err}"),
-            UtilError::Io { path, err } => {
-                write!(f, "{}: {}", path, err)
-            }
-            UtilError::IoNoPath { err } => write!(f, "{err}"),
-        }
-    }
+#[test]
+fn help_short_circuits() {
+    let args = vec!["--help".into()];
+    assert!(matches!(parse_args(&args).unwrap(), ParseOutcome::Help));
 }

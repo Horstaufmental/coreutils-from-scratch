@@ -81,7 +81,7 @@ some tools that targets SELinux (e.g. chcon) or one that i deemed unnecessary (e
 
 also these utilities aim to replicate **GNU coreutils behavior**, not provide a rust wrapper API
 
-> **Total of 100 programs: currently 4 has been made**
+> **Total of 100 programs: currently 5 has been made**
 
 ### File Utilities (fileutils) List
 - [ ] chgrp
@@ -185,7 +185,7 @@ also these utilities aim to replicate **GNU coreutils behavior**, not provide a 
 - [ ] users
 - [ ] who
 - [ ] whoami
-- [ ] yes
+- [x] yes
 
 ## License
 
