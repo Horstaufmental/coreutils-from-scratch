@@ -17,6 +17,11 @@
 use std::fs::File;
 use std::io::{self, Read, Write};
 
+pub mod codec;
+pub mod options;
+pub use codec::{decode, encode};
+pub use options::{Base, Options};
+
 use util::args::{Arg, ArgIter};
 use util::error::UtilError;
 use util::help::HelpEntry;
@@ -96,7 +101,7 @@ pub enum ParseError {
     UnknownOption(char),
     UnknownLongOption(String),
     MissingOperand(&'static str),
-    BadValue(&'static str, &'static str, &'static str),
+    BadValue(String, &'static str, &'static str),
     NoInput,
 }
 
@@ -127,42 +132,17 @@ impl From<ParseError> for UtilError {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Base {
-    Base64,
-    Base64Url,
-    Base58,
-    Base32,
-    Base32Hex,
-    Base16,
-    Base2MSBF,
-    Base2LSBF,
-    Z85,
-}
-
-#[derive(Default, Debug)]
-pub struct Options {
-    pub base: Option<Base>,
-    pub decode: bool,
-    pub ignore_garbage: bool,
-    pub wrap: Option<usize>,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self {
-            base: None,
-            decode: false,
-            ignore_garbage: false,
-            wrap: Some(76),
-        }
-    }
-}
-
 pub fn run(opts: &Options, files: &Vec<String>) -> Result<(), UtilError> {
     let mut out = io::stdout().lock();
-    cat_files(opts, files, &mut out)?;
+    let mut sdin = io::stdout().lock();
     Ok(())
+}
+
+fn expect_value<'a>(it: &mut ArgIter<'a>, opt: &'static str) -> Result<&'a str, ParseError> {
+    match it.next() {
+        Some(Arg::Value(v)) => Ok(v),
+        _ => Err(ParseError::MissingOperand(opt)),
+    }
 }
 
 pub fn parse_args(args: &[String]) -> Result<ParseOutcome, ParseError> {
@@ -181,12 +161,32 @@ pub fn parse_args(args: &[String]) -> Result<ParseOutcome, ParseError> {
             Arg::Long("base16") => opts.base = Some(Base::Base16),
             Arg::Long("base2msbf") => opts.base = Some(Base::Base2MSBF),
             Arg::Long("base2lsbf") => opts.base = Some(Base::Base2LSBF),
+            Arg::Long("z85") => opts.base = Some(Base::Z85),
             Arg::Short('d') | Arg::Long("decode") => opts.decode = true,
             Arg::Short('i') | Arg::Long("ignore-garbage") => opts.ignore_garbage = true,
-            Arg::Short('E') | Arg::Long("show-ends") => {
-                opts.show_ends = true;
+            Arg::Short('w') => {
+                let v = expect_value(&mut it, "-w")?;
+                match v.parse::<usize>() {
+                    Ok(n) => opts.wrap = Some(n),
+                    _ => {
+                        return Err(ParseError::BadValue(
+                            v.to_string(),
+                            "-w",
+                            "invalid wrap size",
+                        ))
+                    }
+                }
             }
-            Arg::Short('w')
+            Arg::LongWithValue("wrap", v) => match v.parse::<usize>() {
+                Ok(n) => opts.wrap = Some(n),
+                _ => {
+                    return Err(ParseError::BadValue(
+                        v.to_string(),
+                        "-w",
+                        "invalid wrap size",
+                    ))
+                }
+            },
             Arg::Long("help") => {
                 return Ok(ParseOutcome::Help);
             }
@@ -208,7 +208,6 @@ pub fn parse_args(args: &[String]) -> Result<ParseOutcome, ParseError> {
             Arg::Long(l) => return Err(ParseError::UnknownLongOption(l.to_string())),
             _ => {}
         }
-        opts.show_ends = true;
     }
 
     Ok(ParseOutcome::Ok(opts, files))

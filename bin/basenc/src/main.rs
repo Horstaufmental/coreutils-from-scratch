@@ -14,7 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-use cat::*;
+use basenc::*;
 use std::env;
 use std::process;
 use util::help::print_help;
