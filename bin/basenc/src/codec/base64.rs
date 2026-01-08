@@ -80,6 +80,10 @@ pub fn encode(data: &[u8], variant: Base64Variant) -> Result<Vec<u8>, CodecError
 }
 
 pub fn decode(data: &[u8], variant: Base64Variant) -> Result<Vec<u8>, CodecError> {
+    if data.len() % 4 == 1 {
+        return Err(CodecError::InvalidInput);
+    }
+
     let table = decoding_table(variant);
 
     let mut out = Vec::with_capacity(data.len() / 4 * 3);
@@ -87,23 +91,22 @@ pub fn decode(data: &[u8], variant: Base64Variant) -> Result<Vec<u8>, CodecError
     let mut i = 0;
     while i < data.len() {
         let a = table[data[i] as usize] as u32;
-        i += 1;
-        let b = table[data[i] as usize] as u32;
-        i += 1;
-        let c = table[data[i] as usize] as u32;
-        i += 1;
-        let d = table[data[i] as usize] as u32;
-        i += 1;
+        let b = table[data.get(i + 1).copied().unwrap_or(b'=') as usize] as u32;
+        let c = table[data.get(i + 2).copied().unwrap_or(b'=') as usize] as u32;
+        let d = table[data.get(i + 3).copied().unwrap_or(b'=') as usize] as u32;
 
         let triple = (a << 18) | (b << 12) | (c << 6) | d;
 
         out.push(((triple >> 16) & 0xFF) as u8);
-        if data[i - 2] != b'=' {
+
+        if data.get(i + 2) != Some(&b'=') {
             out.push(((triple >> 8) & 0xFF) as u8);
         }
-        if data[i - 1] != b'=' {
+        if data.get(i + 3) != Some(&b'=') {
             out.push((triple & 0xFF) as u8);
         }
+
+        i += 4;
     }
 
     Ok(out)
