@@ -24,7 +24,7 @@
 #define PROGRAM_NAME "nproc"
 #define PROJECT_NAME "coreutils from scratch"
 #define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#define VERSION "1.2"
 
 bool showAll = false;
 int ignoreProc = 0;
@@ -106,7 +106,6 @@ int main(int argc, char *argv[]) {
     np -= buffer;
   }
   
-  printf("%d", np);
+  printf("%d\n", np);
   return 0;
 }
-
