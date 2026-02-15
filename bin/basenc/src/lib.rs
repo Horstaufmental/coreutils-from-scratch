@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 /*
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -211,4 +212,71 @@ pub fn parse_args(args: &[String]) -> Result<ParseOutcome, ParseError> {
     }
 
     Ok(ParseOutcome::Ok(opts, files))
+}
+
+pub fn base_files(
+    opts: &Options,
+    files: &Vec<String>,
+    sdin: &mut impl Read,
+    out: &mut impl Write,
+) -> Result<(), UtilError> {
+    if opts.base.is_none() {
+        return Err(UtilError::Parse(("missing encoding type".to_string())));
+    }
+
+    if files.is_empty() {
+        read_stdin(out, sdin, opts).map_err(|e| UtilError::Io { path: "stdin".to_string(), err: e })?;
+    } else {
+        read_files(out, files, opts).map_err(|e| UtilError::Io { path: "file".to_string(), err: e })?;
+    }
+    Ok(())
+}
+
+fn read_stdin(out: &mut impl Write, sdin: &mut impl Read, opts: &Options) -> io::Result<()> {
+    let mut buffer = [0u8; 8192];
+
+    loop {
+        if opts.ignore_garbage {
+            // TODO: implement ignore garbage
+        }
+        let n = sdin.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+
+        let data = if opts.decode {
+            decode(&buffer[..n], opts).unwrap()
+        } else {
+            encode(&buffer[..n], opts).unwrap()
+        };
+
+        out.write_all(&data)?;
+    }
+
+    Ok(())
+}
+
+fn read_files(out: &mut impl Write, files: &Vec<String>, opts: &Options) -> io::Result<()> {
+    for filename in files {
+        let mut file = File::open(filename)?;
+
+        let mut buffer = [0u8; 8192];
+
+        loop {
+            let n = file.read(&mut buffer)?;
+            if n == 0 {
+                break;
+            }
+
+            let data = if opts.decode {
+                decode(&buffer[..n], opts).unwrap()
+            } else {
+                encode(&buffer[..n], opts).unwrap()
+            };
+
+            out.write_all(&data)?;
+        }
+    }
+
+    Ok(())
 }

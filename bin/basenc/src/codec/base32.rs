@@ -1,6 +1,5 @@
 use crate::codec::error::CodecError;
 use std::sync::OnceLock;
-use crate::Base;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Base32Variant {
@@ -8,10 +7,8 @@ pub enum Base32Variant {
     Hex,
 }
 
-pub static BASE32_ALPHABET: &[u8; 32] =
-    b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
-pub static BASE32HEX_ALPHABET: &[u8; 32] =
-    b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
+pub static BASE32_ALPHABET: &[u8; 32] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+pub static BASE32HEX_ALPHABET: &[u8; 32] = b"0123456789ABCDEFGHIJKLMNOPQRSTUV";
 
 const INVALID: u8 = 0x80;
 fn build_decoding_table(alphabet: &[u8; 32]) -> [u8; 256] {
@@ -56,15 +53,23 @@ pub fn encode(data: &[u8], variant: Base32Variant) -> Result<Vec<u8>, CodecError
             i += 1;
         }
         buffer <<= (5 - bytes) * 8;
+        let out_count = match bytes {
+            1 => 2,
+            2 => 4,
+            3 => 5,
+            4 => 7,
+            5 => 8,
+            _ => 0,
+        };
 
-        out.push(alphabet[((buffer >> 35) & 0x1F) as usize]);
-        out.push(alphabet[((buffer >> 30) & 0x1F) as usize]);
-        out.push(alphabet[((buffer >> 25) & 0x1F) as usize]);
-        out.push(if bytes >= 2 { alphabet[((buffer >> 20) & 0x1F) as usize] } else { b'=' });
-        out.push(if bytes >= 2 { alphabet[((buffer >> 15) & 0x1F) as usize] } else { b'=' });
-        out.push(if bytes >= 3 { alphabet[((buffer >> 10) & 0x1F) as usize] } else { b'=' });
-        out.push(if bytes >= 4 { alphabet[((buffer >> 5) & 0x1F) as usize] } else { b'=' });
-        out.push(if bytes >= 5 { alphabet[(buffer & 0x1F) as usize] } else { b'=' });
+        for j in 0..8 {
+            if j < out_count {
+                let shift = 35 - 5 * j;
+                out.push(alphabet[((buffer >> shift) & 0x1F) as usize]);
+            } else {
+                out.push(b'=');
+            }
+        }
     }
 
     Ok(out)
@@ -77,16 +82,24 @@ pub fn decode(data: &[u8], variant: Base32Variant) -> Result<Vec<u8>, CodecError
     }
 
     let mut final_len = in_len / 8 * 5;
-    if in_len > 0 && data[in_len - 1] == b'=' { final_len -= 1; }
-    if in_len > 0 && data[in_len - 2] == b'=' { final_len -= 1; }
-    if in_len > 0 && data[in_len - 3] == b'=' { final_len -= 1; }
-    if in_len > 0 && data[in_len - 4] == b'=' { final_len -= 1; }
+    if in_len > 0 && data[in_len - 1] == b'=' {
+        final_len -= 1;
+    }
+    if in_len > 0 && data[in_len - 2] == b'=' {
+        final_len -= 1;
+    }
+    if in_len > 0 && data[in_len - 3] == b'=' {
+        final_len -= 1;
+    }
+    if in_len > 0 && data[in_len - 4] == b'=' {
+        final_len -= 1;
+    }
 
     let table = decoding_table(variant);
 
     let mut out = Vec::with_capacity(final_len);
 
-    let (mut i, mut j) = (0, 0);
+    let mut i = 0;
     while i < in_len {
         let mut buffer = 0u64;
         let mut valid_bits = 40;
