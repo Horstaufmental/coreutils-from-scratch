@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 /*
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
@@ -20,7 +19,7 @@ use std::io::{self, Read, Write};
 
 pub mod codec;
 pub mod options;
-pub use codec::{decode, encode};
+pub use codec::{decode, decoding_table_for, encode};
 pub use options::{Base, Options};
 
 use util::args::{Arg, ArgIter};
@@ -37,7 +36,7 @@ pub static META: ProgramMeta = ProgramMeta {
 
 pub static HELP_ENTRIES: [HelpEntry; 14] = [
     HelpEntry {
-        opt: "--base64",
+        opt: "    --base64",
         desc: "same as 'base64' program (RFC4648 section 4)",
     },
     HelpEntry {
@@ -135,7 +134,8 @@ impl From<ParseError> for UtilError {
 
 pub fn run(opts: &Options, files: &Vec<String>) -> Result<(), UtilError> {
     let mut out = io::stdout().lock();
-    let mut sdin = io::stdout().lock();
+    let mut sdin = io::stdin().lock();
+    base_files(&opts, &files, &mut sdin, &mut out)?;
     Ok(())
 }
 
@@ -221,13 +221,19 @@ pub fn base_files(
     out: &mut impl Write,
 ) -> Result<(), UtilError> {
     if opts.base.is_none() {
-        return Err(UtilError::Parse(("missing encoding type".to_string())));
+        return Err(UtilError::Parse("missing encoding type".to_string()));
     }
 
     if files.is_empty() {
-        read_stdin(out, sdin, opts).map_err(|e| UtilError::Io { path: "stdin".to_string(), err: e })?;
+        read_stdin(out, sdin, opts).map_err(|e| UtilError::Io {
+            path: "stdin".to_string(),
+            err: e,
+        })?;
     } else {
-        read_files(out, files, opts).map_err(|e| UtilError::Io { path: "file".to_string(), err: e })?;
+        read_files(out, files, opts).map_err(|e| UtilError::Io {
+            path: "file".to_string(),
+            err: e,
+        })?;
     }
     Ok(())
 }
@@ -236,12 +242,14 @@ fn read_stdin(out: &mut impl Write, sdin: &mut impl Read, opts: &Options) -> io:
     let mut buffer = [0u8; 8192];
 
     loop {
-        if opts.ignore_garbage {
-            // TODO: implement ignore garbage
-        }
         let n = sdin.read(&mut buffer)?;
         if n == 0 {
             break;
+        }
+
+        let buffer = buffer.to_vec();
+        if opts.ignore_garbage {
+            ignore_garbage(&mut buffer.to_vec(), opts);
         }
 
         let data = if opts.decode {
@@ -250,7 +258,12 @@ fn read_stdin(out: &mut impl Write, sdin: &mut impl Read, opts: &Options) -> io:
             encode(&buffer[..n], opts).unwrap()
         };
 
-        out.write_all(&data)?;
+        if opts.wrap.unwrap() == 0 {
+            out.write_all(&data)?;
+            out.write(b"\n")?;
+        } else {
+            write_wrapped(data, opts.wrap.unwrap_or(76), out)?;
+        }
     }
 
     Ok(())
@@ -268,15 +281,48 @@ fn read_files(out: &mut impl Write, files: &Vec<String>, opts: &Options) -> io::
                 break;
             }
 
+            let buffer = buffer.to_vec();
+            if opts.ignore_garbage {
+                ignore_garbage(&mut buffer.to_vec(), opts);
+            }
+
             let data = if opts.decode {
                 decode(&buffer[..n], opts).unwrap()
             } else {
                 encode(&buffer[..n], opts).unwrap()
             };
 
-            out.write_all(&data)?;
+            if opts.wrap.unwrap() == 0 {
+                out.write_all(&data)?;
+                out.write(b"\n")?;
+            } else {
+                write_wrapped(data, opts.wrap.unwrap_or(76), out)?;
+            }
         }
     }
 
     Ok(())
+}
+
+fn write_wrapped(data: Vec<u8>, wrap: usize, out: &mut impl Write) -> io::Result<()> {
+    for c in data.chunks(wrap) {
+        out.write_all(&c)?;
+        out.write(b"\n")?;
+    }
+
+    Ok(())
+}
+
+fn ignore_garbage(data: &mut Vec<u8>, opts: &Options) {
+    if opts.base.unwrap() == Base::Base2MSBF || opts.base.unwrap() == Base::Base2LSBF {
+        return;
+    }
+
+    let table = decoding_table_for(opts);
+
+    data.retain(|&c| match opts.base.unwrap() {
+        Base::Z85 => table.unwrap()[c as usize] != 0xFF,
+        Base::Base32 | Base::Base32Hex => table.unwrap()[c as usize] != 0x80 || c == b'=',
+        _ => table.unwrap()[c as usize] != 0x80,
+    });
 }

@@ -26,9 +26,10 @@ fn main() {
     match parse_args(&args) {
         Ok(ParseOutcome::Help) => {
             print_help(
-                "Usage: cat [OPTION]... [FILE]...",
-                "Concatenate FILE(s) to standard output.\n\
-                 With no FILE, or when FILE is -, read standard input.\n",
+                "Usage: basenc [OPTION]... [FILE]",
+                "basenc encode or decode FILE, or standard input, to standard output.\n\n
+With no FILE, or when FILE is -, read standard input.\n\n
+Mandatory arguments to long options are mandatory for short options too.",
                 &HELP_ENTRIES,
             );
         }
@@ -37,13 +38,13 @@ fn main() {
         }
         Ok(ParseOutcome::Ok(opts, files)) => {
             if let Err(e) = run(&opts, &files) {
-                eprintln!("cat: {}", e);
+                eprintln!("basenc: {}", e);
                 process::exit(e.exit_code());
             }
         }
         Err(e) => {
-            eprintln!("cat: {}", e);
-            eprintln!("Try 'cat --help' for more information.");
+            eprintln!("basenc: {}", e);
+            eprintln!("Try 'basenc --help' for more information.");
             process::exit(1);
         }
     }

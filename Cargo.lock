@@ -6,6 +6,7 @@ version = 4
 name = "basenc"
 version = "1.0.0"
 dependencies = [
+ "once_cell",
  "tempfile",
  "util",
 ]

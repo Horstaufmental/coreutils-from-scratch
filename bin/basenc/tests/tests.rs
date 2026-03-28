@@ -1,4 +1,50 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * This file is part of coreutils-rs from scratch.
+ * Copyright (c) 2025 Horstaufmental
+ *
+ * coreutils-rs from scratch is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * coreutils-rs from scratch is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ */
 use basenc::{decode, encode, Base, Options};
+
+/* PARSER TESTS */
+
+#[test]
+fn default_wrap_is_76() {
+    let opts = Options {
+        ..Default::default()
+    };
+
+    assert_eq!(opts.wrap.unwrap(), 76);
+}
+
+/* FUNCTIONALITY TESTS */
+
+#[test]
+fn wrap_at_76() {
+    let opts = Options {
+        base: Base::Base64,
+        ..Default::default()
+    };
+
+    let s = encode(
+        b"very long text aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        &opts,
+    )
+    .unwrap();
+
+    assert!(s.contains(b'\n'));
+    assert!(s[76] == b'\n');
+}
 
 /* ENCODER TESTS */
 
