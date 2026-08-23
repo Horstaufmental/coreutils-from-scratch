@@ -14,8 +14,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-#include <asm-generic/errno-base.h>
-#include <complex.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -28,19 +26,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "mktemp"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1"
+#include "meta.h"
 
 bool dir = false;
 bool dry_run = false;
 bool quiet = false;
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct option long_options[] = {{"directory", no_argument, 0, 'd'},
                                        {"dry-run", no_argument, 0, 'u'},
@@ -68,39 +58,6 @@ static struct help_entry help_entries[] = {
     {"    --help", "display this help and exit"},
     {"    --version", "output version information and exit"},
     {NULL, NULL}};
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... [TEMPLATE]\n", name);
-  puts("Create a temporary file or directory, safely, and print its name.\n"
-       "TEMPLATE must contain at least consecutive 'X's in last component.\n"
-       "If TEMPLATE is not specified, use tmp.XXXXXXXXXX, and --tmpdir is "
-       "implied.\n"
-       "Files are created u+rw, and directories u+rwx, minus umask "
-       "restrictions.\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-       "<https://gnu.org/licenses/gpl.html>.\n"
-       "This is free software: you are free to change and redistribute it.\n"
-       "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 /*
 by default, mkstemp/mkdtemp only modifies the last 6 Xs
@@ -207,10 +164,18 @@ int main(int argc, char *argv[]) {
       suffix = optarg;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... [TEMPLATE]", argv[0]);
+        print_help(buf, "Create a temporary file or directory, safely, and print its name.\n"
+                    "TEMPLATE must containt at least 3 consecutive 'X's in last component.\n"
+                    "if TEMPLATE is not specified, use tmp.XXXXXXXXXX, and --tmpdir is implied.\n"
+                    "Files are created u+rw, and directories u+rwx, minus umask restrictions.\n",
+                    help_entries, NULL);
+        return 0;
+      }
     case 9:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     case '?':
       fprintf(stderr, "Try '%s --help' for more information\n", argv[0]);

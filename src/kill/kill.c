@@ -24,15 +24,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "kill"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
-struct help_entry {
-  char *opt;
-  char *desc;
-};
+#include "meta.h"
 
 // most distros will ship kill from utils-linux (such as the case with my arch
 // linux) however, our goal is to be recreating **GNU** Coreutils, not
@@ -46,52 +38,13 @@ struct option long_options[] = {{"signal", required_argument, 0, 's'},
 
 static struct help_entry help_entries[] = {
     {"-s, --signal=SIGNAL, -SIGNAL",
-     "specify the name or number of the signal\n"
-     "                                to be sent"},
+     "specify the name or number of the signal to be sent"},
     {"-l, --list",
      "list signal names, or convert signal names to/from numbers"},
     {"-t, --table", "print a table of signal information"},
     {"    --help", "display this help and exit"},
     {"    --version", "output this information and exit"},
     {NULL, NULL}};
-
-void print_help(const char *name) {
-  printf("Usage: %s [-s SIGNAL | -SIGNAL] PID...\n"
-         "  or:  %s -l [SIGNAL]...\n"
-         "  or:  %s -t [SIGNAL]...\n",
-         name, name, name);
-  puts("Send signals to processes, or list signals.\n");
-
-  puts("Mandatory arguments to long options are mandatory for short options "
-       "too.\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-  puts("\nSIGNAL may be a signal name like 'HUP' (except for -SIGNAL), or a "
-       "signal number like '1',\n"
-       "or the exit status of a process terminated by a signal.\n"
-       "PID is an integer; if negative it identifies a process group.");
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 struct signalLists {
   const char *name;
@@ -388,10 +341,24 @@ int main(int argc, char *argv[]) {
       flags |= PRINT_TABLE;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[1024];
+        snprintf(buf, 1024, "Usage: %s [-s SIGNAL] PID...\n"
+                            "  or:  %s -l [SIGNAL]...\n"
+                            "  or:  %s -t [SIGNAL]...", argv[0], argv[0], argv[0]);
+        print_help(buf, "Send signals to processes, or list signals.\n\n"
+                    "Mandatory arguments to long options are mandatory for short options too.",
+                    help_entries,
+                    "SIGNAL may be a signal name like 'HUP', or a signal number like '1',\n"
+                    "or the exit status of a process terminated by a signal.\n"
+                    "PID is an integer; if negative it identifies a process group.\n\n"
+                    "Your shell may have its own version of kill, which usually supersdes\n"
+                    " the version described here.  Please refer to your shell's documentation\n"
+                    "for details about the options it supports.");
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     }
   }

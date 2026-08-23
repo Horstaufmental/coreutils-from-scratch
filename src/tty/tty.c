@@ -21,11 +21,6 @@
 #include <stdbool.h>
 #include <getopt.h>
 
-#define PROGRAM_NAME "tty"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
 bool silentOut = false;
 
 struct help_entry {

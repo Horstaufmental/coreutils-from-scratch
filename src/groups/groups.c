@@ -14,7 +14,6 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-#include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <getopt.h>
 #include <grp.h>
@@ -25,17 +24,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "groups"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#include "meta.h"
 
 #define BUF_SIZE 1025
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct option long_options[] = {{"help", no_argument, 0, 1},
                                        {"version", no_argument, 0, 2},
@@ -45,37 +36,6 @@ static struct help_entry help_entries[] = {
     {"     --help", "display this help and exit"},
     {"     --version", "output version information and exit"},
     {NULL, NULL}};
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... [USERNAME]...\n", name);
-  puts("Print group memberships for each USERNAME or, if no USERNAME is "
-       "specified, for\n"
-       "the current process (which may differ if the groups database has "
-       "changed).\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-       "<https://gnu.org/licenses/gpl.html>.\n"
-       "This is free software: you are free to change and redistribute it.\n"
-       "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 void print_to_var(char *buf, char *str, bool comma) {
   char buffer[BUF_SIZE];
@@ -151,10 +111,16 @@ int main(int argc, char *argv[]) {
   while ((opt = getopt_long(argc, argv, "", long_options, 0)) != -1) {
     switch (opt) {
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... [USERNAME]...", argv[0]);
+        print_help(buf, "Print group memberships for each USERNAME or, if no USERNAME is specified, for\n"
+                   "the current process (which may differ if the groups database has changed).",
+                   help_entries, NULL);
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     case '?':
       fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);

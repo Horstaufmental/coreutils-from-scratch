@@ -14,12 +14,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  */
-#include <asm-generic/errno-base.h>
 #include <errno.h>
 #include <getopt.h>
 #include <grp.h>
 #include <pwd.h>
-#include <selinux/selinux.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,10 +25,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "groups"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#ifdef USE_SELINUX
+#include <selinux/selinux.h>
+#endif
+
+#include "meta.h"
 
 #define BUF_SIZE 1025
 
@@ -49,11 +48,6 @@
 #define P_DEF_MASKN (P_DEFAULT | P_NAME)
 #define P_DEF_MASKR (P_DEFAULT | P_REAL)
 
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
-
 static struct option long_options[] = {{"context", no_argument, 0, 'Z'},
                                        {"group", no_argument, 0, 'g'},
                                        {"groups", no_argument, 0, 'G'},
@@ -71,45 +65,14 @@ static struct help_entry help_entries[] = {
     {"-Z, --context", "print only the security context of the process"},
     {"-g, --group", "print only the effective group ID"},
     {"-G, --groups", "print all group IDs"},
-    {"-n, --name", "print a name instead of a number, for -ugG"},
-    {"-r, --real", "print the real ID instead of the effective ID, with -ugG"},
+    {"-n, --name", "print a name instead of a number, for -u,-g,-G"},
+    {"-r, --real", "print the real ID instead of the effective ID, with -u,-g,-G"},
     {"-u, --user", "print only the effective user ID"},
     {"-z, --zero", "delimit entries with NUL characters, not whitespace;\n"
                    "                  not permitted in default format"},
     {"    --help", "display this help and exit"},
     {"    --version", "output version information and exit"},
     {NULL, NULL}};
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... [USER]...\n", name);
-  puts("Print user and group information for each specified USER,\n"
-       "or (when USER omitted) for the current process.\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-  puts(
-      "\nWithout any OPTION, print some useful set of identified information.");
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 int check_mutex(unsigned int flags, unsigned int mask) {
   unsigned int m = flags & mask;
@@ -139,7 +102,12 @@ void print_to_var(char *buf, char *str, bool comma) {
 }
 
 int print_id(unsigned int flags, char *user) {
-  if (flags & P_CONTEXT && (is_selinux_enabled() != 1)) {
+#ifdef USE_SELINUX
+  int has_selinux = is_selinux_enabled();
+#else
+  int has_selinux = 0;
+#endif
+  if (flags & P_CONTEXT && (has_selinux != 1)) {
     fputs("id: --context (-Z) works only on an SELinux-enabled kernel\n",
           stderr);
     exit(EXIT_FAILURE);
@@ -189,7 +157,7 @@ int print_id(unsigned int flags, char *user) {
         return 1;
     }
   }
-
+#ifdef USE_SELINUX
   if (flags & P_CONTEXT) {
     if (user_info != NULL) {
       fprintf(stderr,
@@ -209,6 +177,7 @@ int print_id(unsigned int flags, char *user) {
       puts(context);
     freecon(context);
   }
+#endif
   if (flags & P_GROUP) {
     gid_t gid;
     if (user_info != NULL) {
@@ -465,10 +434,16 @@ int main(int argc, char *argv[]) {
       flags |= P_ZERO;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... [USER]...", argv[0]);
+        print_help(buf, "Print user and group information for each specified USER,\n"
+                    "or (when USER omitted) for the current process.\n",
+                  help_entries, "Without any OPTION, print some useful set of identified information.");
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     case '?':
       fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);

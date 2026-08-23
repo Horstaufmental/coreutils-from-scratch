@@ -20,11 +20,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "whoami"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.2"
-
 struct help_entry {
   const char *opt;
   const char *desc;

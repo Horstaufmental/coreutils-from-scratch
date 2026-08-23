@@ -27,11 +27,6 @@
 #include <unistd.h>
 #include <utime.h>
 
-#define PROGRAM_NAME "touch"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
 struct help_entry {
   char *opt;
   char *desc;

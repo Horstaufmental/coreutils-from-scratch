@@ -16,20 +16,11 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <stdbool.h>
 
-#define PROGRAM_NAME "printenv"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.0"
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
+#include "meta.h"
 
 static struct option long_options[] = {
   {"null", no_argument, 0, '0'},
@@ -45,39 +36,6 @@ static struct help_entry help_entries[] = {
   {NULL, NULL}
 };
 
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... [VARIABLE]...\n", name);
-  puts("Print the values of the specified environment VARIABLE(s).\n"
-       "If no VARIABLE is specified, print name and value pairs for them all.\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-  puts("\nYour shell may have its own version of printenv, which usually supersedes\n"
-        "the version described here.  Please refer to your shell's documentation\n"
-        "for details about the options it supports.");
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
-
 int main(int argc, char *argv[], char *envp[]) {
   bool newline = true;
   
@@ -88,10 +46,19 @@ int main(int argc, char *argv[], char *envp[]) {
         newline = false;
         break;
       case 1:
-        print_help(argv[0]);
-        return 0;
+        {
+          char buf[256];
+          snprintf(buf, 256, "Usage: %s [OPTION] [VARIABLE]...", argv[0]);
+          print_help(buf, "Print the values of the specified environment VARIABLE(s).\n"
+                      "If no VARIABLE is specified, print name and value pairs for them all.\n",
+                      help_entries,
+                      "Your shell may have its own version of printenv, which usually supersedes\n"
+                      "the version described here.  Please refer to your shell's documentation\n"
+                      "for details about the options it supports.");
+          return 0;
+        }
       case 2:
-        print_version();
+        print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
         return 0;
     }
   }

@@ -25,18 +25,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 
+#include "meta.h"
+
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define BUFSIZ 8192
-
-#define PROGRAM_NAME "head"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.0"
-
-struct help_entry {
-    const char *opt;
-    const char *desc;
-};
 
 static struct option long_options[] = {
     {"bytes", required_argument, NULL, 'c'},
@@ -68,43 +60,6 @@ static struct help_entry help_entries[] = {
     {"    --version", "output version information and exit"},
     {NULL, NULL}
 };
-
-void print_help(const char *name) {
-    printf("Usage: %s [OPTION]... [FILE]\n", name);
-    puts("Print the first 10 lines of each FILE to standard output.\n"
-           "With more than one FILE, precede each with a header giving the file name.\n");
-
-    puts("With no FILE, or when FILE is -, read standard input.\n\n"
-           "Mandatory arguments to long options are mandatory for short options "
-           "too.");
-
-    // find longest option string
-    int maxlen = 0;
-    for (int i = 0; help_entries[i].opt; i++) {
-        int len = (int)strlen(help_entries[i].opt);
-        if (len > maxlen)
-            maxlen = len;
-    }
-
-    // print each option aligned
-    for (int i = 0; help_entries[i].opt; i++) {
-        printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-    }
-    puts("\nNUM may have a multiplier suffix:\n"
-         "b 512, kB 1000, K 1024, MB 1000*1000, M 1024*1024,\n"
-         "GB 1000*1000*1000, G 1024*1024*1024, and so on for T, P, E, Z, Y, R, Q.\n"
-         "Binary prefixes can be used, too: KiB=K, MiB=M, and so on.");
-}
-
-void print_version(void) {
-    printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-    printf("Copyright (C) 2025 %s\n", AUTHORS);
-    puts("License GPLv3+: GNU GPL version 3 or later "
-         "<https://gnu.org/licenses/gpl.html>.\n"
-         "This is free software: you are free to change and redistribute it.\n"
-         "There is NO WARRANTY, to the extent permitted by law.\n");
-    printf("Written by %s\n", AUTHORS);
-}
 
 struct count {
     bool enabled;
@@ -730,10 +685,22 @@ int main(int argc, char *argv[]) {
                 opts.nul_termed = true;
                 break;
             case 1:
-                print_help(argv[0]);
-                return 0;
+                {
+                    char buf[256];
+                    snprintf(buf, 256, "Usage: %s [OPTION]... [FILE]...", argv[0]);
+                    print_help(buf, "Print the first 10 lines of each FILE to standard output.\n"
+                                "With more than one FILE, precede each with a header giving the file name.\n\n"
+                                "With no FILE, or when FILE is -, read standard input.\n\n"
+                                "Mandatory arguments to long options are mandatory for short options too.",
+                                help_entries,
+                                "NUM may have a multiplier suffix:\n"
+                                "b 512, kB 1000, K 1024, MB 1000*1000, M 1024*1024,\n"
+                                "GB 1000*1000*1000, G 1024*1024*1024, and so on for T, P, E, Z, Y, R, Q.\n"
+                                "Binary prefixes can be used, too: KiB=K, MiB=M, and so on.");
+                    return 0;
+                }
             case 2:
-                print_version();
+                print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
                 return 0;
             default:
                 fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);

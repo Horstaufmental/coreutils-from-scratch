@@ -19,54 +19,15 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
 
-#define PROGRAM_NAME "sleep"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
+#include "meta.h"
 
 static struct help_entry help_entries[] = {
   {"    --help", "display this help and exit"},
   {"    --version", "output version information and exit"},
   {NULL, NULL}
 };
-
-void print_help(const char *name) {
-  printf("Usage: %s NUMBER[SUFFIX]...\n", name);
-  printf("  or:  %s OPTION\n", name);
-  printf("Pause for NUMBER seconds, where NUMBER is an interger or floating-point.\n");
-  printf("SUFFIX may be 's','m','h', or 'd', for seconds, minutes, hours, days.\n");
-  printf("With multiple arguments, pause for the sum of their values.\n\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 int parse_time(const char *str, long *out) {
     char *endptr;
@@ -106,18 +67,25 @@ int parse_time(const char *str, long *out) {
 
 int main(int argc __attribute__((unused)), char *argv[]) {
   struct timespec timeSleep;
-  
+
+  // TODO: use getopt_long for codebase consistency  
   if (argv[1] != NULL) {
     if (strcasecmp(argv[1], "--help") == 0) {
-      print_help(argv[0]);
+      char buf[512];
+      snprintf(buf, 512, "Usage: %s NUMBER[SUFFIX]...\n"
+                         "  or:  %s OPTION", argv[0], argv[0]);
+      print_help(buf, "Pause for NUMBER seconds, where NUMBER is an integer or floating-point.\n"
+                  "SUFFIX may be 's','m','h', or 'd', for seconds, minutes, hours, days.\n"
+                  "With multiple arguments, pause for the sum of their values.\n",
+                  help_entries, NULL);
       return 0;
     } else if (strcasecmp(argv[1], "--version") == 0) {
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     } else {
       for (int i = 1; argv[i] != NULL; i++) {
         if (parse_time(argv[i], &timeSleep.tv_sec) == 0) {
-          fprintf(stderr, "sleep: invalid time interval '%s'\nTry '%s --help' for more information.\n", argv[1], argv[0]);
+          fprintf(stderr, "%s: invalid time interval '%s'\nTry '%s --help' for more information.\n", argv[0], argv[1], argv[0]);
           return 1;
         }
         timeSleep.tv_nsec = 0;

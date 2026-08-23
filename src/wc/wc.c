@@ -44,11 +44,6 @@
 #define T_ONLY (1 << 2)
 #define T_NEVR (1 << 3)
 
-#define PROGRAM_NAME "wc"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.0"
-
 struct help_entry {
   const char *opt;
   const char *desc;

@@ -29,10 +29,9 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+#include "meta.h"
 #include "args.h"
 #include "longformat.h"
-#include "print_help.h"
-#include "print_version.h"
 
 struct option long_options[] = {
     {"all", no_argument, 0, 'a'},
@@ -41,6 +40,17 @@ struct option long_options[] = {
     {"version", no_argument, 0, 2},
     {0, no_argument, 0, 'l'},
     {0, 0, 0, 0}
+};
+
+struct help_entry help_entries[] = {
+    {"-a, --all", "show hidden and 'dot' files. Use this twice to also\n"
+                  "              show the '.' and '..' directories"},
+    {"-A, --almost-all", "equivalent to --all; included for compatibility with `ls -A`"},
+    {"-h, --human-readable", "with -l, print sizes in human readable format (e.g., 1K 234M 2G)"},
+    {"-l", "display extended file metadata as a table"},
+    {"    --help", "display this help and exit"},
+    {"    --version", "output version information and exit"},
+    {NULL, NULL}
 };
 
 bool includeALL = false;
@@ -75,13 +85,21 @@ int main(int argc, char *argv[]) {
       longFormat = true;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... [FILE]...", argv[0]);
+        print_help(buf, "List information about the FILEs (the current directory by default).\n"
+                    "Sort entries alphabetically if none of -cftuvSUX nor --sort is specified.\n\n"
+                    "Mandatory arguments to long options are mandatory for short options too.",
+                    help_entries,
+                    NULL);
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     default:
-      print_help(argv[0]);
+      
       return 1;
     }
   }

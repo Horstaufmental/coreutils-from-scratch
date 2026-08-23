@@ -26,19 +26,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "mkdir"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#include "meta.h"
 
 bool verbose = false;
 bool parents = false;
 bool mode = false;
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct option long_options[] = {{"verbose", no_argument, 0, 'v'},
                                        {"parents", no_argument, 0, 'p'},
@@ -57,36 +49,6 @@ static struct help_entry help_entries[] = {
     {"    --version", "output version information and exit"},
     {NULL, NULL}
 };
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... DIRECTORY...\n", name);
-  printf("Create the DIRECTORY(ies), if they do not already exist.\n\n");
-  printf("Mandatory arguments to long options are mandatory for short options "
-         "too.\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 void createDir(char *dirName, mode_t modeV) {
   if (parents) {
@@ -173,10 +135,16 @@ int main(int argc, char *argv[]) {
       modeV = (mode_t)strtol(optarg, NULL, 8);
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... DIRECTORY...", argv[0]);
+        print_help(buf, "Create the DIRECTORY(ies), if they do not already exist.\n\n"
+                   "Mandatory arguments to long options are mandatory for short options too.",
+                   help_entries, NULL);
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     case '?':
       return 1;

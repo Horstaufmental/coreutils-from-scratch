@@ -23,20 +23,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define PROGRAM_NAME "pwd"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
+#include "meta.h"
 
 // "If no option is specified, -P is assumed."
 // resolve all symlinks
 // otherwise use PWD from environment, even if it contains symlinks
 bool physical = true;
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct help_entry help_entries[] = {
   {"-L, --logical", "use PWD from environment, even if it contains symlinks"},
@@ -46,51 +38,31 @@ static struct help_entry help_entries[] = {
   {NULL, NULL}
 };
 
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]...\n", name);
-  printf("Print the full filename of the current working directory.\n\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen) maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
-
 int main(int argc __attribute__((unused)), char *argv[]) {
   char cwd[PATH_MAX];
   char *pwd_env = getenv("PWD");
   strncat(pwd_env, "\n", sizeof(pwd_env) - strlen(pwd_env) - 1);
 
+  // TODO: use getopt_long instead for codebase consistency
   if (argv[1] != NULL) {
     if (strcasecmp(argv[1], "--logical") == 0 || strcasecmp(argv[1], "-L") == 0) {
       physical = false;
     } else if (strcasecmp(argv[1], "--physical") == 0 || strcasecmp(argv[1], "-L") == 0) {
       physical = true;
     } else if (strcasecmp(argv[1], "--help") == 0) {
-      print_help(argv[0]);
+      char buf[256];
+      snprintf(buf, 256, "Usage: %s [OPTION]...", argv[0]);
+      print_help(buf, "Print the full filename of the current working directory.\n", help_entries,
+                 "If no option is specified, -P is assumed.\n\n"
+                 "Your shell may have its own version of pwd, which usually supersedes\n"
+                 "the version described here.  Please refer to your shell's documentation\n"
+                 "for details about the options it supports.");
       return 0;
     } else if (strcasecmp(argv[1], "--version") == 0) {
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     } else {
-      fprintf(stderr, "pwd: unrecognized option '%s'\nTry '%s --help' for more information\n", argv[1], argv[0]);
+      fprintf(stderr, "%s: unrecognized option '%s'\nTry '%s --help' for more information\n", argv[0], argv[1], argv[0]);
       return 1;
     }
   }

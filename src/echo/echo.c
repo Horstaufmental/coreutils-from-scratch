@@ -24,18 +24,10 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define PROGRAM_NAME "echo"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.2"
+#include "meta.h"
 
 bool noNewline = false;
 bool backslashEscapes = false;
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct option long_options[] = {{"help", no_argument, 0, 1},
                                        {"version", no_argument, 0, 2},
@@ -45,9 +37,9 @@ static struct option long_options[] = {{"help", no_argument, 0, 1},
                                        {0, 0, 0, 0}};
 
 static struct help_entry help_entries[] = {
-    {"-n", "do not output the trailing newline"},
-    {"-e", "enable interpretation of backslash escapes"},
-    {"-E", "disable interpretation of backslash escapes (default)"},
+    {"-n", "do not output the trailing newline", Inline},
+    {"-e", "enable interpretation of backslash escapes", Inline},
+    {"-E", "disable interpretation of backslash escapes (default)", Inline},
     {"    --help", "display this help and exit"},
     {"    --version", "output version information and exit"},
     {NULL, NULL} // sentinel
@@ -147,63 +139,31 @@ static int parse_escapes(const char *input, char *output, size_t out_size) {
   return 0;
 }
 
-void print_help(const char *name) {
-  printf("Usage: %s [SHORT-OPTION]... [STRING]...\n", name);
-  printf("  or:  %s LONG-OPTION\n", name);
-  printf("Echo the STRING(s) to standard output.\n\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-  printf("\nIf -e is in effect, the following sequences are recongized:\n\n");
-
-  maxlen = 0;
-  for (int i = 0; backslash_entries[i].opt; i++) {
-    int len = (int)strlen(backslash_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  for (int i = 0; backslash_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, backslash_entries[i].opt,
-           backslash_entries[i].desc);
-  }
-  puts(
-      "Your shell may have its own version of echo, which usually supersedes\n"
-      "the version described here. Please refer to your shell's documentation\n"
-      "for details about the options it supports.\n\n"
-      "Consider using the printf(1) command instead,\n"
-      "as it avoids problems when outputting option-like strings.\n");
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
-
 int main(int argc, char *argv[]) {
   int opt;
   while ((opt = getopt_long(argc, argv, "neE", long_options, 0)) != -1) {
     switch (opt) {
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char usage[512];
+        char footer[1024];
+        snprintf(usage, 512, "Usage: %s [SHORT-OPTION]... [STRING]...\n"
+                             "  or:  %s LONG-OPTION", argv[0], argv[0]);
+        snprintf(footer, 1024, "If -e is in effect, the following sequences are recognized:\n\n");
+        for (int i = 0; backslash_entries[i].opt; i++) {
+          snprintf(footer, 1024 - strlen(footer), "  %-5s  %s\n", backslash_entries[i].opt, backslash_entries[i].desc);
+        }
+        snprintf(footer, 1024 - strlen(footer), "\nYour shell may have its own version of echo, which usually supersedes\n"
+                  "the version described here.  Please refer to your shell's documentation\n"
+                  "for details about the options it supports.\n\n"
+                  "Consider using the printf(1) command instead,\n"
+                  "as it avoids problems when outputting option-like strings.");
+
+        print_help(usage, "Echo the STRING(s) to standard output.", help_entries, footer);
+        return 0;
+      }
     case 2:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     case 'n':
       noNewline = true;

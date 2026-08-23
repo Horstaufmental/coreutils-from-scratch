@@ -19,11 +19,6 @@
 #include <stdio.h>
 #include <getopt.h>
 
-#define PROGRAM_NAME "false"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
 struct help_entry {
   const char *opt;
   const char *desc;

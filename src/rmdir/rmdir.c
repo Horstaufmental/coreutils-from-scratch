@@ -25,15 +25,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "rmdir"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
+#include "meta.h"
 
 static struct option long_options[] = {
     {"parents", no_argument, 0, 'p'},
@@ -47,40 +39,11 @@ static struct help_entry help_entries[] = {
     {"    --ignore-fail-on-non-empty",
      "ignore each failure to remove a non-emopty directory"},
     {"-p, --parents", "remove DIRECTORY and its ancestors;\n"
-                      "                                  e.g., 'rmdir -p a/b' "
-                      "is similar to 'rmdir a/b a'\n"},
+                      "                                  e.g., 'rmdir -p a/b' is similar to 'rmdir a/b a'"},
     {"-v, --verbose", "output a diagnostic for every directory processed"},
     {"    --help", "display this help and exit"},
     {"    --version", "output version information and exit"},
     {0, 0}};
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... DIRECTORY...\n"
-         "Remove the DIRECTORY(ies), if they are empty.\n\n",
-         name);
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-       "<https://gnu.org/licenses/gpl.html>.\n"
-       "This is free software: you are free to change and redistribute it.\n"
-       "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 bool ignoreNonEmpty = false;
 bool verbose = false;
@@ -200,13 +163,17 @@ int main(int argc, char *argv[]) {
       verbose = true;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... DIRECTORY...", argv[0]);
+        print_help(buf, "Remove the DIRECTORY(ies), if they are empty.", help_entries, NULL);
+        return 0;
+      }
     case 2:
       ignoreNonEmpty = true;
       break;
     case 9:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     default:
       fprintf(stderr,

@@ -30,10 +30,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "rm"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.2"
+#include "meta.h"
 
 bool verbose = false;
 bool recursive = false;
@@ -49,11 +46,6 @@ bool shouldPrompt = false;
 bool preserveRoot = true;
 
 int argCount; // for -I
-
-struct help_entry {
-  const char *opt;
-  const char *desc;
-};
 
 static struct option long_options[] = {{"verbose", no_argument, 0, 'v'},
                                        {"help", no_argument, 0, 1},
@@ -84,34 +76,6 @@ static struct help_entry help_entries[] = {
     {"    --version", "output version information and exit"},
     {NULL, NULL}
 };
-
-void print_help(const char *name) {
-  printf("Usage: %s [OPTION]... [FILE]...\n", name);
-  printf("Remove (unlink) the FILE(s).\n\n");
-
-  // find longest option string
-  int maxlen = 0;
-  for (int i = 0; help_entries[i].opt; i++) {
-    int len = (int)strlen(help_entries[i].opt);
-    if (len > maxlen)
-      maxlen = len;
-  }
-
-  // print each option aligned
-  for (int i = 0; help_entries[i].opt; i++) {
-    printf("  %-*s  %s\n", maxlen, help_entries[i].opt, help_entries[i].desc);
-  }
-}
-
-void print_version() {
-  printf("%s (%s) %s\n", PROGRAM_NAME, PROJECT_NAME, VERSION);
-  printf("Copyright (C) 2025 %s\n", AUTHORS);
-  puts("License GPLv3+: GNU GPL version 3 or later "
-  "<https://gnu.org/licenses/gpl.html>.\n"
-  "This is free software: you are free to change and redistribute it.\n"
-  "There is NO WARRANTY, to the extent permitted by law.\n");
-  printf("Written by %s\n", AUTHORS);
-}
 
 int isYes(const char *input) {
   return strcasecmp(input, "y") == 0 || strcasecmp(input, "yes") == 0 ||
@@ -439,10 +403,25 @@ int main(int argc, char *argv[]) {
       rmEmpty = true;
       break;
     case 1:
-      print_help(argv[0]);
-      return 0;
+      {
+        char buf[256];
+        snprintf(buf, 256, "Usage: %s [OPTION]... [FILE]...", argv[0]);
+        print_help(buf, "Remove (unlink) the FILE(s).\n",
+                   help_entries,
+                   "By default, rm does not remove directories.  Use the --recursive (-r or -R)\n"
+                   "option to remove each listed directory, too, along with all of its contents.\n\n"
+                   "Any attempt to remove a file whose last name component is '.' or '..'\n"
+                   "is rejected with a diagnostic.\n\n"
+                   "To remove a file whose name stats with a '-', for example '-foo'\n"
+                   "use one of these commands:\n"
+                   "  rm -- -foo\n\n  rm ./-foo\n\n"
+                   "If you use rm to remove a file, it might be possible to recover\n"
+                   "some of its contents, given sufficient expertise and/or time.  For greater\n"
+                   "assurance that the contents are unrecoverable, consider using shred(1).");
+        return 0;
+      }
     case 9:
-      print_version();
+      print_version(PROGRAM_NAME, PROJECT_NAME, VERSION, AUTHORS);
       return 0;
     default:
       if (!force)

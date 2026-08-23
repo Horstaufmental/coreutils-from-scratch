@@ -23,15 +23,10 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#define PROGRAM_NAME "uname"
-#define PROJECT_NAME "coreutils from scratch"
-#define AUTHORS "Horstaufmental"
-#define VERSION "1.1 (Okami Era)"
-
 #define BUF_SIZE 1025
 
 #ifndef OPERATING_SYSTEM
-#define OPERATING_SYSTEM "unknown"
+#define OPERATING_SYSTEM "Unknown"
 #endif
 
 #define P_KERNEL (1 << 0)
